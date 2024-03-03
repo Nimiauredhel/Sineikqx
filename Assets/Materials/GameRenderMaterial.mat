@@ -48,7 +48,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _GameStateMap:
-        m_Texture: {fileID: 2800000, guid: d10ccff5acd70fe4d996cf8b5375b607, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -91,9 +91,9 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FreeCellColor: {r: 1, g: 1, b: 1, a: 1}
-    - _GridColor: {r: 0.6383837, g: 0.6496709, b: 0.93207544, a: 0.10980392}
+    - _GridColor: {r: 0.6383836, g: 0.6496709, b: 0.93207544, a: 0}
     - _MarkedCellColor: {r: 1, g: 1, b: 1, a: 1}
-    - _PlayerColor: {r: 0.67390585, g: 0, b: 1, a: 1}
-    - _PlayerPosition: {r: 0.63, g: 0.61, b: 0.005, a: 0}
+    - _PlayerColor: {r: 0.80784315, g: 0.42745098, b: 0.54509807, a: 1}
+    - _PlayerPosition: {r: 0.1953125, g: 0.1796875, b: 0.005, a: 0}
     - _TakenCellColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

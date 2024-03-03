@@ -35,7 +35,9 @@ Shader "WeirdQix/GameRender"
             };
 
             sampler2D _GameStateMap;
+            float4 _GameStateMap_ST;
             sampler2D _CellColorRamp;
+            float4 _CellColorRamp_ST;
             
             float4 _PlayerColor;
             float4 _PlayerPosition;
@@ -47,7 +49,7 @@ Shader "WeirdQix/GameRender"
             {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                //o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+                o.uv = TRANSFORM_TEX(v.uv, _GameStateMap);
                 o.uv = v.uv;
                 return o;
             }
@@ -60,7 +62,7 @@ Shader "WeirdQix/GameRender"
                 float2 coord = i.uv;
                 float2 gridCell = float2(floor(coord.x * _GridSize), floor(coord.y * _GridSize));
                 float4 cellValue = tex2D(_GameStateMap, gridCell/_GridSize);
-                col = tex2D(_CellColorRamp, cellValue);
+                col = tex2D(_CellColorRamp, float2(cellValue.r, cellValue.r));
                 
                 // Draw Grid
                 fixed xDistFromGrid = frac(i.uv.x * _GridSize);
