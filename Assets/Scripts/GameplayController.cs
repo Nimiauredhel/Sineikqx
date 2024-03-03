@@ -256,24 +256,50 @@ public class GameplayController : MonoBehaviour
     private HashSet<Vector2Int> GenerateFillList(Vector2Int startNode)
     {
         HashSet<Vector2Int> cellList = new HashSet<Vector2Int>();
-        FloodFill(startNode, ref cellList);
         
-        void FloodFill(Vector2Int node, ref HashSet<Vector2Int> cellList)
-        {
-            if (cellList.Contains(node)) return;
-            CellState state = grid[node.x][node.y];
+        if (cellList.Contains(startNode)) return cellList;
 
+        Stack<Vector2Int> nodes = new Stack<Vector2Int>();
+        nodes.Push(startNode);
+
+        while (nodes.Count > 0)
+        {
+            Vector2Int node = nodes.Pop();
+            
+            // TODO: add boundary checking
+            
+            CellState state = grid[node.x][node.y];
+            
             if (state == CellState.Free || state == CellState.Enemy)
             {
                 cellList.Add(node);
+
+                Vector2Int next = node + Vector2Int.down;
+                if (!cellList.Contains(next))
+                {
+                    nodes.Push(next);
+                }
+
+                next = node + Vector2Int.up;
+                if (!cellList.Contains(next))
+                {
+                    nodes.Push(next);
+                }
                 
-                FloodFill(node + Vector2Int.down, ref cellList);
-                FloodFill(node + Vector2Int.up, ref cellList);
-                FloodFill(node + Vector2Int.left, ref cellList);
-                FloodFill(node + Vector2Int.right, ref cellList);
+                next = node + Vector2Int.left;
+                if (!cellList.Contains(next))
+                {
+                    nodes.Push(next);
+                }
+                
+                next = node + Vector2Int.right;
+                if (!cellList.Contains(next))
+                {
+                    nodes.Push(next);
+                }
             }
         }
-
+        
         return cellList;
     }
 }
