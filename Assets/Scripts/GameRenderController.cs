@@ -22,6 +22,11 @@ public class GameRenderController : MonoBehaviour
 
     public void UpdateGrid(CellState[][] newGrid)
     {
+        if (gameplayTexture == null)
+        {
+            SetTextureFromBase();
+        }
+
         Color col = new Color();
         Color[] newFloatGrid = new Color[Constants.GRID_SIZE*Constants.GRID_SIZE];
 
