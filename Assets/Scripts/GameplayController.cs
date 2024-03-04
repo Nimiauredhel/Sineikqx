@@ -5,13 +5,15 @@ using UnityEngine;
 public class GameplayController : MonoBehaviour
 {
     [SerializeField] private bool oneDimensionalMovement;
-    [SerializeField] private float gameplayTickLength = 0.05f;
+    [SerializeField] private float gameplayTickLength = 0.064f;
     [SerializeField] private GameRenderController renderController;
 
     private Vector2Int playerGridPosition = new Vector2Int(0, 0);
+    private Vector2 playerVisualPosition = new Vector2();
     private Vector2 currentInputVector = Vector2.zero;
     private Vector2 scheduledInputVector = Vector2.zero;
-    
+
+    private bool lastWasUp = false;
     private float gameplayTickCounter = 0.0f;
     private CellState[][] grid;
 
@@ -22,13 +24,18 @@ public class GameplayController : MonoBehaviour
         InitializeGrid();
         renderController.Initialize();
         renderController.UpdateGrid(grid);
-        UpdatePlayerPosition(Vector2Int.zero);
+        UpdatePlayerGridPosition(Vector2Int.up);
+        playerVisualPosition = Vector2.up;
+        renderController.UpdatePlayerPosition(playerVisualPosition);
+    }
+
+    private void FixedUpdate()
+    {
+        ReadInput();
     }
 
     private void Update()
     {
-        ReadInput();
-
         if (gameplayTickCounter < gameplayTickLength)
         {
             gameplayTickCounter += Time.deltaTime;
@@ -37,6 +44,12 @@ public class GameplayController : MonoBehaviour
         {
             gameplayTickCounter = 0.0f;
             ExecuteInput();
+        }
+        
+        if (playerVisualPosition != playerGridPosition)
+        {
+            playerVisualPosition = Vector2.Lerp(playerVisualPosition, playerGridPosition, 0.1f);
+            renderController.UpdatePlayerPosition(playerVisualPosition);
         }
     }
     
@@ -71,10 +84,29 @@ public class GameplayController : MonoBehaviour
         {
             float absX = Mathf.Abs(xInput);
             float absY = Mathf.Abs(yInput);
-            
-            if (absX > absY) yInput = 0.0f;
-            else if (absY > absX) xInput = 0.0f;
-            else if (absX > 0.0f && absY > 0.0f) yInput = 0.0f;
+
+            if (absX > absY)
+            {
+                lastWasUp = false;
+                yInput = 0.0f;
+            }
+            else if (absY > absX)
+            {
+                lastWasUp = true;
+                xInput = 0.0f;
+            }
+            else if (absX > 0.0f && absY > 0.0f)
+            {
+                if (lastWasUp)
+                {
+                    lastWasUp = false;
+                    yInput = 0.0f;
+                }
+                else
+                {
+                    xInput = 0.0f;
+                }
+            }
         }
 
         currentInputVector = new Vector2(xInput, yInput);
@@ -90,12 +122,13 @@ public class GameplayController : MonoBehaviour
         if (scheduledInputVector.magnitude > 0.0f)
         {
             Vector2Int delta = new Vector2Int(Math.Sign(scheduledInputVector.x), Math.Sign(scheduledInputVector.y));
+            currentInputVector = Vector2Int.zero;
             scheduledInputVector = Vector2.zero;
-            UpdatePlayerPosition(delta);
+            UpdatePlayerGridPosition(delta);
         }
     }
 
-    private void UpdatePlayerPosition(Vector2Int delta)
+    private void UpdatePlayerGridPosition(Vector2Int delta)
     {
         playerGridPosition += delta;
 
@@ -139,7 +172,7 @@ public class GameplayController : MonoBehaviour
             renderController.UpdateGrid(grid);
         }
 
-        renderController.UpdatePlayerPosition(playerGridPosition);
+        //renderController.UpdatePlayerPosition(playerGridPosition);
     }
 
     private void HandlePlayerFinishedMark()
