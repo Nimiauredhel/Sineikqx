@@ -145,14 +145,15 @@ public class GameplayController : MonoBehaviour
     private void HandlePlayerFinishedMark()
     {
         // Determine if any cells need to be filled
-        List<HashSet<Vector2Int>> areasToFill = DetermineFillAreas();
+        bool fillSuccess = false;
+        List<HashSet<Vector2Int>> areasToFill = DetermineFillAreas(out fillSuccess);
         
         // Remove marked cells one by one
         for (int i = markedPath.Count - 1; i >= 0; i--)
         {
             Vector2Int markedCell = markedPath[i];
             markedPath.RemoveAt(i);
-            grid[markedCell.x][markedCell.y] = CellState.Free;
+            grid[markedCell.x][markedCell.y] = fillSuccess ? CellState.Taken : CellState.Free;
         }
         
         // Fill in cells that need to be filled
@@ -171,8 +172,9 @@ public class GameplayController : MonoBehaviour
         renderController.UpdateGrid(grid);
     }
 
-    private List<HashSet<Vector2Int>> DetermineFillAreas()
+    private List<HashSet<Vector2Int>> DetermineFillAreas(out bool fillSuccess)
     {
+        fillSuccess = false;
         if (markedPath.Count <= 0) return null;
 
         List<HashSet<Vector2Int>> potentialFillAreas = new List<HashSet<Vector2Int>>();
@@ -231,7 +233,7 @@ public class GameplayController : MonoBehaviour
                     return 0;
                 }
             }
-
+            
             return fillArea.Count;
         }
 
@@ -244,6 +246,7 @@ public class GameplayController : MonoBehaviour
             //temporary hack to only fill the smaller area, since no enemies yet
             if (score > 0 && score < lowestScore)
             {
+                fillSuccess = true;
                 validFillAreas.Clear();
                 validFillAreas.Add(fillArea);
                 lowestScore = score;
