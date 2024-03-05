@@ -58,6 +58,7 @@ public class GameRenderController : MonoBehaviour
         gameplayTexture = new Texture2D(gameplayTextureBase.width, gameplayTextureBase.height,gameplayTextureBase.format, 0, false);
         gameplayTexture.SetPixels(gameplayTextureBase.GetPixels());
         gameplayTexture.filterMode = FilterMode.Point;
+        gameplayTexture.wrapMode = TextureWrapMode.Repeat;
         gameplayTexture.Apply();
         gameplayImage.material.SetTexture("_GameStateMap", gameplayTexture);
     }
