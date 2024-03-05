@@ -107,19 +107,24 @@ Shader "WeirdQix/GameRender"
             {
                 float euler = 2.71828;
                 float2 heightAndDiffuse = float2(0.0, 0.0);
+                float2 dirMod = float2(0.0, 0.0)
+                + (sin(_Time.y*0.1) * 2.0 - 1.0) * 0.01
+                + (cos(_Time.y*0.15) * 2.0 - 1.0) * 0.01;
                 
                 for(int i = 0; i < octaves; i++)
                 {
                     float2 direction = float2(random(3456.324+i*3.765) * 2.0 - 1.0, random(7566.7634+i*7.342) * 2.0 - 1.0);
+                    direction += dirMod * (1.0 + 0.1 * (i+1));
                     float height = sinWave(amplitude, position, direction, time, frequency);
                     height = pow(euler, height);
-                    float diffuse = sinWaveDiffuse(height, direction);
+                    
+                    float diffuse = sinWaveDiffuse(cos(height), direction);
                     heightAndDiffuse += float2(height, diffuse);
                     frequency *= lacunarity;
                     amplitude *= gain;
                 }
 
-                return heightAndDiffuse;
+                return clamp(0.0, 1.0, heightAndDiffuse);
             }
 
             v2f vert (appdata v)
@@ -141,10 +146,13 @@ Shader "WeirdQix/GameRender"
                 float4 cellValue = tex2D(_GameStateMap, gridCell/_GridSize);
                 col = tex2D(_CellColorRamp, float2(cellValue.r, cellValue.r));
 
-                float2 wave = fractalSinWave(1.5, 50.0*coord+(gridCell), _Time.y, 1.0, 32, 1.18, 0.82).y;
+                _SunDirection.xy = length(_PlayerPosition * 2.0 - 1.0) * _SunDirection.w;
+                float aberration = 1.0-cos(_Time.x)*0.1;
+                coord *= aberration;
+                float2 wave = fractalSinWave(1.0, aberration*42.265*coord+gridCell*0.75, _Time.y, 1.0, 32, 1.18, 0.82).y;
                 
                 wave.y *= step(cellValue, 0.25);
-                col = lerp(col, col*1.5, wave.y);
+                col = lerp(col, col*2.0, wave.y);
                 
                 // Draw Grid
                 fixed xDistFromGrid = frac(i.uv.x * _GridSize);

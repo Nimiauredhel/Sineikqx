@@ -84,7 +84,7 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _SunIntensity: 0.01
+    - _SunIntensity: 0.03
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
@@ -95,7 +95,7 @@ Material:
     - _GridColor: {r: 0.6383836, g: 0.6496709, b: 0.93207544, a: 0}
     - _MarkedCellColor: {r: 1, g: 1, b: 1, a: 1}
     - _PlayerColor: {r: 0.80784315, g: 0.42745098, b: 0.54509807, a: 1}
-    - _PlayerPosition: {r: 0.24218744, g: 0.007812633, b: 0.005, a: 0}
-    - _SunDirection: {r: -60, g: -70, b: 0, a: 0}
+    - _PlayerPosition: {r: 0.55514026, g: 0.9885012, b: 0.005, a: 0}
+    - _SunDirection: {r: 0, g: 0, b: -0.8, a: 1}
     - _TakenCellColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
