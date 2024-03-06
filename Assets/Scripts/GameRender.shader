@@ -136,20 +136,28 @@ Shader "WeirdQix/GameRender"
                 return o;
             }
 
+            float4 neighbourCellValues(float2 coord)
+            {
+                
+            }
+
             fixed4 frag (v2f i) : SV_Target
             {
                 fixed4 col;
 
                 //Draw Cell
                 float2 coord = i.uv;
-                float2 gridCell = float2(floor(coord.x * _GridSize), floor(coord.y * _GridSize));
-                float4 cellValue = tex2D(_GameStateMap, gridCell/_GridSize);
-                col = tex2D(_CellColorRamp, float2(cellValue.r, cellValue.r));
+                float2 gridCoord = float2(coord.x * _GridSize, coord.y * _GridSize);
+                float2 gridCell = floor(gridCoord);
+                float2 cellFrac = frac(gridCoord);
+                float cellValue = tex2D(_GameStateMap, coord).a;
+                col = tex2D(_CellColorRamp, float2(cellValue, cellValue));
 
                 _SunDirection.xy = length(_PlayerPosition * 2.0 - 1.0) * _SunDirection.w;
                 float aberration = 1.0-cos(_Time.x)*0.1;
                 coord *= aberration;
-                float2 wave = fractalSinWave(1.0, aberration*42.265*coord+gridCell*0.75, _Time.y, 1.0, 32, 1.18, 0.82).y;
+                float globalWaveFluctuation = (_CosTime.w * 2.0 - 1.0) * 0.00001;
+                float2 wave = fractalSinWave(1.0 + globalWaveFluctuation, aberration*42.265*coord+gridCell*0.75, _Time.y, 1.0 + globalWaveFluctuation, 32, 1.163, 0.84).y;
                 
                 wave.y *= step(cellValue, 0.25);
                 col = lerp(col, col*2.0, wave.y);

@@ -37,7 +37,7 @@ public class GameRenderController : MonoBehaviour
             {
                 CellState state = newGrid[y][x];
                 float value = (float)(int)state;
-                col.r = value * 0.01f;
+                col.a = value * 0.01f;
                 newFloatGrid[index] = col;
                 
                 if (value > 55.0f && value < 95.0)
