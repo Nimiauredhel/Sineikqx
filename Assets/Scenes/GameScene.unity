@@ -286,6 +286,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   oneDimensionalMovement: 1
   gameplayTickLength: 0.05
+  playerVisualPosLerpSpeed: 12
   renderController: {fileID: 162094923}
 --- !u!1 &519420028
 GameObject:

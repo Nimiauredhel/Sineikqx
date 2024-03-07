@@ -169,33 +169,41 @@ Shader "WeirdQix/GameRender"
             {
                 fixed4 col;
                 float2 coord = i.uv;
+                float coordFrac = frac(coord);
+                float coordFloor = floor(coord);
 
                 // Determine Cell Type
-                float2 gridCoord = float2(coord.x * _GridSize, coord.y * _GridSize);
+                float outOfBoundsAmount = abs(coordFloor) * min(coordFrac, 1.0 - abs(coordFrac));
+                float outOfBoundsDistortion = (sign(coordFloor) * _CosTime.y * 2.0 - 1.0) * (outOfBoundsAmount * (noise(coord) * 2.0 - 1.0) * 0.3 * sin(coord) + random(coord) * (outOfBoundsAmount*0.05));
+                float2 valueCoord = coord + outOfBoundsDistortion * outOfBoundsAmount;
+                float2 gridCoord = float2(valueCoord.x * _GridSize, valueCoord.y * _GridSize);
                 float2 gridCell = floor(gridCoord);
-                float cellValue = tex2D(_GameStateMap, coord).a;
+                float cellValue = tex2D(_GameStateMap, valueCoord).a;
                 col = tex2D(_CellColorRamp, float2(cellValue, cellValue));
-                _SunDirection.xy = length(_PlayerPosition * 2.0 - 1.0) * _SunDirection.w;
+                _SunDirection.x = 15 + (_PlayerPosition.y * 2.0 - 1.0) * 10.0;
+                _SunDirection.y = 15 + (_PlayerPosition.x * 2.0 - 1.0) * 10.0;
+                _SunDirection.xyz *= _SunDirection.w;
                 float aberration = 1.0-cos(_Time.x)*0.1;
 
                 // Draw Waves
-                float2 ditherValue = gridCell * (1.0 - cellValue) * 0.75;
                 float globalWaveFluctuation = (_CosTime.w * 2.0 - 1.0) * 0.00001;
-                float2 wave = fractalSinWave(1.0 + globalWaveFluctuation, aberration*42.265*coord+ditherValue, _Time.y, 1.0 + globalWaveFluctuation, 32, 1.163, 0.84).y;
-                wave.y *= step(cellValue, 0.25);
-                col = lerp(col, col*2.0, wave.y);
+                float2 ditherValue = gridCell * (1.0 - cellValue) * 0.75+ random(valueCoord) * 1.2 + globalWaveFluctuation ;
+                float2 wave = fractalSinWave(1.0 + globalWaveFluctuation, aberration*42.265*valueCoord+ditherValue, _Time.y, 1.0 + globalWaveFluctuation, 32, 1.163, 0.84).y;
+                float waveNormal = wave.y * step(cellValue, 0.25);
+                col = lerp(col, col*2.0, waveNormal);
                 
                 // Draw Borders
                 float2 cellFrac = frac(gridCoord-0.5);
                 float2 distFromGrid = abs(cellFrac * 2.0 - 1.0);
-                float nCellValue = neighbourCellValue(cellValue, coord);
+                float nCellValue = neighbourCellValue(cellValue, valueCoord);
                 _BorderColor.a *= step(0.1, nCellValue);
-                col = lerp(col, _BorderColor, _BorderColor.a * (1.0 - smoothstep(distFromGrid.x, 0.0, _BorderThickness)));
-                col = lerp(col, _BorderColor, _BorderColor.a * (1.0 - smoothstep(distFromGrid.y, 0.0, _BorderThickness)));
+                float waveEffect = (wave.y * 1.5);
+                col = lerp(col, _BorderColor, _BorderColor.a * (waveEffect + 1.0 - smoothstep(distFromGrid.x, 0.0, _BorderThickness)));
+                col = lerp(col, _BorderColor, _BorderColor.a * (waveEffect + 1.0 - smoothstep(distFromGrid.y, 0.0, _BorderThickness)));
 
                 // Draw Bounds
                 float boundCoordNoise = 0.005*noise(i.uv*50.0+_Time.w*2.3)*noise(i.uv*12.3+_SinTime.z*5.2);
-                float2 boundCoord = i.uv - boundCoordNoise;
+                float2 boundCoord = valueCoord - boundCoordNoise;
                 float boundThickness = 0.0025;
                 _BorderColor = float4(0.22, 0.22, 0.0, 1.0);
                 _BorderColor.a *= (step(boundCoord.x, 0.0) * step(0.0, boundCoord.x+boundThickness)) + (step(boundCoord.x-boundThickness, 1.0) * step(1.0, boundCoord.x))
@@ -213,17 +221,19 @@ Shader "WeirdQix/GameRender"
                 col = lerp(col, float4(0,0,0,0), combinedDistFromPlayer*0.4);
 
                 // Draw Noise Clouds
-                float blurDistance = 0.2;
-                float blurAmount = 0.2;
-                float cloudModifier = 0.2;
-                float2 cloudCoord = coord * 5.0 + _Time.x;
-                float cloudAmount = noise(cloudCoord);
-                cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x+blurDistance, cloudCoord.y)), blurAmount);
-                cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x, cloudCoord.y+blurDistance)), blurAmount);
-                cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x-blurDistance, cloudCoord.y)), blurAmount);
-                cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x, cloudCoord.y-blurDistance)), blurAmount);
+                float blurDistance = abs(wave.y) * 0.05;
+                float blurAmount = 0.1;
+                float cloudModifier = 0.1;
+                float2 cloudCoord = float2(coord.x + _Time.y * 0.05, coord.y + _Time.y * 0.1) * 10.0;
+                float2 opposingCloudCoord = float2(coord.x - (_SinTime.y * 0.3), coord.y - 0.84 - _CosTime.y * 0.15) * 5.0;
+                float cloudAmount = lerp (noise(cloudCoord), noise(opposingCloudCoord), 0.5);
+                //cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x+blurDistance, cloudCoord.y)), blurAmount);
+                //cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x, cloudCoord.y+blurDistance)), blurAmount);
+                //cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x-blurDistance, cloudCoord.y)), blurAmount);
+                //cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x, cloudCoord.y-blurDistance)), blurAmount);
                 cloudAmount *= step(0.5, cellValue);
-                col = lerp(col, float4(1.0,1.0,1.0,1.0), cloudAmount*cloudModifier);
+                cloudAmount -= wave.y * wave.x * 0.12;
+                col = lerp(col + (wave.y * 2.0 - 1.0) * 0.005, float4(1.0,1.0,1.0,1.0), cloudAmount*cloudModifier);
                 
                 return col;
             }
