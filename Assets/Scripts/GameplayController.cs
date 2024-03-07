@@ -131,26 +131,24 @@ public class GameplayController : MonoBehaviour
 
     private void UpdatePlayerGridPosition(Vector2Int delta)
     {
+        // Test movement target and update position if valid
+        
+        Vector2Int targetPosition = playerGridPosition + delta;
+        
+        if (targetPosition.x < 0 
+            || targetPosition.x > Constants.GRID_SIZE-1
+            || targetPosition.y < 0
+            || targetPosition.y > Constants.GRID_SIZE-1)
+        {
+            return;
+        }
+        
+        if (!IsCellWalkableToPlayer(targetPosition)) return;
+        
         playerGridPosition += delta;
-
-        if (playerGridPosition.x < 0)
-        {
-            playerGridPosition.x = 0;
-        }
-        else if (playerGridPosition.x > Constants.GRID_SIZE-1)
-        {
-            playerGridPosition.x = Constants.GRID_SIZE - 1;
-        }
-            
-        if (playerGridPosition.y < 0)
-        {
-            playerGridPosition.y = 0;
-        }
-        else if (playerGridPosition.y > Constants.GRID_SIZE-1)
-        {
-            playerGridPosition.y = Constants.GRID_SIZE - 1;
-        }
-
+        
+        // Handle game state consequences
+        
         bool gridChanged = false;
         
         if (grid[playerGridPosition.x][playerGridPosition.y] == CellState.Free)
@@ -172,8 +170,6 @@ public class GameplayController : MonoBehaviour
         {
             renderController.UpdateGrid(grid);
         }
-
-        //renderController.UpdatePlayerPosition(playerGridPosition);
     }
 
     private void HandlePlayerFinishedMark()
@@ -204,6 +200,27 @@ public class GameplayController : MonoBehaviour
     {
         InitializeGrid();
         renderController.UpdateGrid(grid);
+    }
+
+    private bool IsCellWalkableToPlayer(Vector2Int cellCoord)
+    {
+        CellState cellState = grid[cellCoord.x][cellCoord.y];
+        if (cellState == CellState.Free) return true;
+        if (cellState == CellState.Enemy || cellState == CellState.Marked) return false;
+
+        if (cellState == CellState.Taken)
+        {
+            if (grid[playerGridPosition.x][playerGridPosition.y] == CellState.Marked
+                || cellCoord.x == 0 || cellCoord.y == 0
+                || cellCoord.x == Constants.GRID_SIZE - 1 || cellCoord.y == Constants.GRID_SIZE - 1
+                || grid[cellCoord.x + 1][cellCoord.y] == CellState.Free
+                || grid[cellCoord.x][cellCoord.y + 1] == CellState.Free
+                || grid[cellCoord.x - 1][cellCoord.y] == CellState.Free
+                || grid[cellCoord.x][cellCoord.y - 1] == CellState.Free)
+                return true;
+        }
+
+        return false;
     }
 
     #region Fill
@@ -260,8 +277,6 @@ public class GameplayController : MonoBehaviour
 
         int ScoreFillArea(HashSet<Vector2Int> fillArea)
         {
-            int score = 0;
-
             foreach (Vector2Int cell in fillArea)
             {
                 if (grid[cell.x][cell.y] == CellState.Enemy)

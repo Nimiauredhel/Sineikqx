@@ -39,11 +39,6 @@ public class GameRenderController : MonoBehaviour
                 float value = (float)(int)state;
                 col.a = value * 0.01f;
                 newFloatGrid[index] = col;
-                
-                if (value > 55.0f && value < 95.0)
-                {
-                    value = value;
-                }
 
                 index++;
             }
