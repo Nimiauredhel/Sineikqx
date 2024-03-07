@@ -6,6 +6,7 @@ public class GameplayController : MonoBehaviour
 {
     [SerializeField] private bool oneDimensionalMovement;
     [SerializeField] private float gameplayTickLength = 0.064f;
+    [SerializeField] private float playerVisualPosLerpSpeed = 10.0f;
     [SerializeField] private GameRenderController renderController;
 
     private Vector2Int playerGridPosition = new Vector2Int(0, 0);
@@ -48,7 +49,7 @@ public class GameplayController : MonoBehaviour
         
         if (playerVisualPosition != playerGridPosition)
         {
-            playerVisualPosition = Vector2.Lerp(playerVisualPosition, playerGridPosition, 0.1f);
+            playerVisualPosition = Vector2.Lerp(playerVisualPosition, playerGridPosition, playerVisualPosLerpSpeed*Time.deltaTime);
             renderController.UpdatePlayerPosition(playerVisualPosition);
         }
     }
@@ -205,6 +206,8 @@ public class GameplayController : MonoBehaviour
         renderController.UpdateGrid(grid);
     }
 
+    #region Fill
+    
     private List<HashSet<Vector2Int>> DetermineFillAreas(out bool fillSuccess)
     {
         fillSuccess = false;
@@ -338,4 +341,7 @@ public class GameplayController : MonoBehaviour
         
         return cellList;
     }
+    
+    #endregion
+    
 }
