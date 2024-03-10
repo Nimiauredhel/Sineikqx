@@ -6,12 +6,14 @@ Shader "WeirdQix/GameRender"
         _CellColorRamp("Cell Color Ramp", 2D) = "white" {}
         _PlayerColor ("Player Color", Color) = (1,1,1,1)
         _BorderColor ("Border Color", Color) = (1,1,1,1)
+        _BossColor ("Boss Color", Color) = (1,1,1,1)
         _BorderThickness("Border Thickness", float) = 0.2
         _GridSize ("Grid Size", int) = 64
         _SunDirection("Sun Direction", vector) = (1,1,1,1)
         _SunIntensity("Sun Intensity", float) = 1.0
         
         _PlayerPosition ("Player Position", Vector) = (0.5, 0.5, 1, 1)
+        _BossPosition ("Boss Position", Vector) = (0.75, 0.75, 1, 1)
     }
     SubShader
     {
@@ -47,6 +49,9 @@ Shader "WeirdQix/GameRender"
             
             float4 _PlayerColor;
             float4 _PlayerPosition;
+
+            float4 _BossPosition;
+            float4 _BossColor;
 
             float4 _BorderColor;
             float _BorderThickness;
@@ -185,6 +190,14 @@ Shader "WeirdQix/GameRender"
                 _SunDirection.xyz *= _SunDirection.w;
                 float aberration = 1.0-cos(_Time.x)*0.1;
 
+                // Draw Boss
+                fixed distFromBoss = distance(coord, _BossPosition);
+                float bossDarkness = _BossPosition.z/pow(10, distFromBoss);
+                bossDarkness += 0.1 * noise(coord) + (0.1 * step(cellValue, 0.5) * step(0.25, cellValue));
+                col = lerp(col, float4(0,0,0,0), bossDarkness);
+                col = lerp(col, _BossColor*0.8, smoothstep(0.01, 0.0, pow(distFromBoss, 3)));
+                col = lerp(col, _BossColor*1.1, step(distFromBoss, _BossPosition.w));
+                
                 // Draw Waves
                 float globalWaveFluctuation = (_CosTime.w * 2.0 - 1.0) * 0.00001;
                 float2 ditherValue = gridCell * (1.0 - cellValue) * 0.75+ random(valueCoord) * 1.2 + globalWaveFluctuation ;
@@ -212,8 +225,8 @@ Shader "WeirdQix/GameRender"
                 col = lerp(col, _BorderColor, _BorderColor.a * (1.0 - smoothstep(distFromGrid.y, 0.0, _BorderThickness)));
 
                 // Draw Player
-                fixed xDistFromPlayer = distance(i.uv.x, _PlayerPosition.x);
-                fixed yDistFromPlayer = distance(i.uv.y, _PlayerPosition.y);
+                fixed xDistFromPlayer = distance(coord.x, _PlayerPosition.x);
+                fixed yDistFromPlayer = distance(coord.y, _PlayerPosition.y);
                 fixed combinedDistFromPlayer = xDistFromPlayer + yDistFromPlayer;
                 fixed lightDistanceFromPlayer = lerp(max(xDistFromPlayer, yDistFromPlayer), min(xDistFromPlayer, yDistFromPlayer), 0.75);
                 col = lerp(col, _PlayerColor, max(0.0, _PlayerPosition.z)/lightDistanceFromPlayer);
@@ -221,8 +234,8 @@ Shader "WeirdQix/GameRender"
                 col = lerp(col, float4(0,0,0,0), combinedDistFromPlayer*0.4);
 
                 // Draw Noise Clouds
-                float blurDistance = abs(wave.y) * 0.05;
-                float blurAmount = 0.1;
+                //float blurDistance = abs(wave.y) * 0.05;
+                //float blurAmount = 0.1;
                 float cloudModifier = 0.1;
                 float2 cloudCoord = float2(coord.x + _Time.y * 0.05, coord.y + _Time.y * 0.1) * 10.0;
                 float2 opposingCloudCoord = float2(coord.x - (_SinTime.y * 0.3), coord.y - 0.84 - _CosTime.y * 0.15) * 5.0;

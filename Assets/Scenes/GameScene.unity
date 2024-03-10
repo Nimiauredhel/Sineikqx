@@ -285,8 +285,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   oneDimensionalMovement: 1
-  gameplayTickLength: 0.05
+  initialEnemyCount: 3
+  playerTickLength: 0.05
+  enemyTickLength: 0.05
+  gridTickLength: 0.032
   playerVisualPosLerpSpeed: 12
+  playerInitialPosition: {x: 0, y: 63}
+  bossInitialPosition: {x: 31, y: 31}
   renderController: {fileID: 162094923}
 --- !u!1 &519420028
 GameObject:

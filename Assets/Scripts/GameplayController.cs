@@ -1,33 +1,61 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 public class GameplayController : MonoBehaviour
 {
     [SerializeField] private bool oneDimensionalMovement;
-    [SerializeField] private float gameplayTickLength = 0.064f;
+    [SerializeField] private int initialEnemyCount = 3;
+    [SerializeField] private float playerTickLength = 0.064f;
+    [SerializeField] private float enemyTickLength = 0.5f;
+    [SerializeField] private float gridTickLength = 0.032f;
     [SerializeField] private float playerVisualPosLerpSpeed = 10.0f;
+    [SerializeField] private Vector2Int playerInitialPosition;
+    [SerializeField] private Vector2Int bossInitialPosition;
     [SerializeField] private GameRenderController renderController;
 
     private Vector2Int playerGridPosition = new Vector2Int(0, 0);
     private Vector2 playerVisualPosition = new Vector2();
+
+    private Vector2Int bossGridPosition = new Vector2Int(31, 31);
+    private Vector2 bossVisualPosition = new Vector2();
+    
     private Vector2 currentInputVector = Vector2.zero;
     private Vector2 scheduledInputVector = Vector2.zero;
 
+    private bool gridChanged = false;
     private bool lastWasUp = false;
-    private float gameplayTickCounter = 0.0f;
+    private bool playerSafe = true;
+    private int lives = 3;
+    private float playerTickCounter = 0.0f;
+    private float enemyTickCounter = 0.0f;
+    private float gridTickCounter = 0.0f;
     private CellState[][] grid;
 
     private List<Vector2Int> markedPath = new List<Vector2Int>();
+    private List<Vector2Int> enemyPositions = new List<Vector2Int>();
+
+    private Vector2Int[] moveDirections = new Vector2Int[]
+    {
+        new Vector2Int(1, 0),
+        new Vector2Int(0, 1),
+        new Vector2Int(-1, 0),
+        new Vector2Int(0, -1)
+    };
 
     private void Start()
     {
         InitializeGrid();
         renderController.Initialize();
-        renderController.UpdateGrid(grid);
-        UpdatePlayerGridPosition(Vector2Int.up);
-        playerVisualPosition = Vector2.up;
+        playerGridPosition = playerInitialPosition;
+        bossGridPosition = bossInitialPosition;
+        playerVisualPosition = (Vector2)playerInitialPosition;
+        bossVisualPosition = (Vector2)bossInitialPosition;
         renderController.UpdatePlayerPosition(playerVisualPosition);
+        renderController.UpdateBossPosition(bossVisualPosition);
+        UpdateRenderGrid();
     }
 
     private void FixedUpdate()
@@ -37,20 +65,51 @@ public class GameplayController : MonoBehaviour
 
     private void Update()
     {
-        if (gameplayTickCounter < gameplayTickLength)
+        if (playerTickCounter < playerTickLength)
         {
-            gameplayTickCounter += Time.deltaTime;
+            playerTickCounter += Time.deltaTime;
         }
         else
         {
-            gameplayTickCounter = 0.0f;
+            playerTickCounter = 0.0f;
             ExecuteInput();
+        }
+        
+        if (enemyTickCounter < enemyTickLength)
+        {
+            enemyTickCounter += Time.deltaTime;
+        }
+        else
+        {
+            enemyTickCounter = 0.0f;
+            MoveEnemies();
         }
         
         if (playerVisualPosition != playerGridPosition)
         {
             playerVisualPosition = Vector2.Lerp(playerVisualPosition, playerGridPosition, playerVisualPosLerpSpeed*Time.deltaTime);
             renderController.UpdatePlayerPosition(playerVisualPosition);
+        }
+
+        if (bossVisualPosition != bossGridPosition)
+        {
+            bossVisualPosition = Vector2.Lerp(bossVisualPosition, bossGridPosition, playerVisualPosLerpSpeed*Time.deltaTime);
+            renderController.UpdateBossPosition(bossVisualPosition);
+        }
+
+        if (gridTickCounter < gridTickLength)
+        {
+            gridTickCounter += Time.deltaTime;
+        }
+        else
+        {
+            gridTickCounter = 0.0f;
+            
+            if (gridChanged)
+            {
+                UpdateRenderGrid();
+                gridChanged = false;
+            }
         }
     }
     
@@ -73,6 +132,22 @@ public class GameplayController : MonoBehaviour
                     grid[x][y] = CellState.Free;
                 }
             }
+        }
+
+        enemyPositions = new List<Vector2Int>();
+        
+        for (int i = 0; i < initialEnemyCount; i++)
+        {
+            Vector2Int newPos;
+            
+            do
+            {
+                newPos =
+                    new Vector2Int(Random.Range(1, Constants.GRID_SIZE), Random.Range(1, Constants.GRID_SIZE));
+            } while (enemyPositions.Contains(newPos));
+
+            grid[newPos.x][newPos.y] = CellState.Enemy;
+            enemyPositions.Add(newPos);
         }
     }
 
@@ -148,28 +223,30 @@ public class GameplayController : MonoBehaviour
         playerGridPosition += delta;
         
         // Handle game state consequences
+        CellState targetState = grid[playerGridPosition.x][playerGridPosition.y];
         
-        bool gridChanged = false;
-        
-        if (grid[playerGridPosition.x][playerGridPosition.y] == CellState.Free)
+        if (targetState == CellState.Free)
         {
-            gridChanged = true;
+            playerSafe = false;
             grid[playerGridPosition.x][playerGridPosition.y] = CellState.Marked;
             markedPath.Add(playerGridPosition);
         }
-        else if (grid[playerGridPosition.x][playerGridPosition.y] == CellState.Taken)
+        else if (targetState == CellState.Taken)
         {
+            playerSafe = true;
+            
             if (markedPath.Count > 0)
             {
-                gridChanged = true;
                 HandlePlayerFinishedMark();
             }
         }
-
-        if (gridChanged)
+        else if (targetState == CellState.Enemy)
         {
-            renderController.UpdateGrid(grid);
+            HandlePlayerHit();
+            playerSafe = true;
         }
+
+        gridChanged = true;
     }
 
     private void HandlePlayerFinishedMark()
@@ -178,22 +255,132 @@ public class GameplayController : MonoBehaviour
         bool fillSuccess = false;
         List<HashSet<Vector2Int>> areasToFill = DetermineFillAreas(out fillSuccess);
         
-        // Remove marked cells one by one
-        for (int i = markedPath.Count - 1; i >= 0; i--)
-        {
-            Vector2Int markedCell = markedPath[i];
-            markedPath.RemoveAt(i);
-            grid[markedCell.x][markedCell.y] = fillSuccess ? CellState.Taken : CellState.Free;
-        }
+        DeleteMarkedPath(fillSuccess);
         
         // Fill in cells that need to be filled
         foreach (HashSet<Vector2Int> fillArea in areasToFill)
         {
             foreach (Vector2Int cell in fillArea)
             {
+                CellState prefillState = grid[cell.x][cell.y];
+
+                if (prefillState == CellState.Enemy)
+                {
+                    enemyPositions.Remove(cell);
+                }
+
                 grid[cell.x][cell.y] = CellState.Taken;
             }
         }
+    }
+
+    private void DeleteMarkedPath(bool fill)
+    {
+        // Remove marked cells one by one
+        for (int i = markedPath.Count - 1; i >= 0; i--)
+        {
+            Vector2Int markedCell = markedPath[i];
+            markedPath.RemoveAt(i);
+            grid[markedCell.x][markedCell.y] = fill ? CellState.Taken : CellState.Free;
+        }
+    }
+
+    private void HandlePlayerHit()
+    {
+        playerGridPosition = playerInitialPosition;
+        lives--;
+        DeleteMarkedPath(false);
+    }
+
+    private void MoveEnemies()
+    {
+        bool willMove;
+        Vector2Int delta = Vector2Int.zero;
+        Vector2Int targetCell = Vector2Int.zero;
+        CellState targetState = CellState.None;
+        
+        // Move Boss
+        if (Random.Range(0, 9) > 0)
+        {
+            delta = moveDirections[Random.Range(0, moveDirections.Length)];
+            targetCell = bossGridPosition + delta;
+            targetState = grid[targetCell.x][targetCell.y];
+
+            willMove = targetState is CellState.Free or CellState.Marked;
+            
+            if (willMove)
+            {
+                if (targetState == CellState.Marked || targetCell == playerGridPosition)
+                {
+                    HandlePlayerHit();
+                }
+                
+                bossGridPosition = targetCell;
+            }
+            else if (targetState == CellState.Taken)
+            {
+                if (targetCell.x == 0)
+                {
+                    targetCell = new Vector2Int(Constants.GRID_SIZE - 2, bossGridPosition.y);
+                    targetState = grid[targetCell.x][targetCell.y];
+                    if (targetState == CellState.Free)
+                    {
+                        bossGridPosition = targetCell;
+                    }
+                }
+            }
+        }
+        
+        // Move Small Enemies
+        for (int i = 0; i < enemyPositions.Count; i++)
+        {
+            // Move to Player
+            if (Random.Range(0, 9) > (playerSafe ? 9 : 1))
+            {
+                int xDist = Mathf.Abs(enemyPositions[i].x - playerGridPosition.x);
+                int yDist = Mathf.Abs(enemyPositions[i].y - playerGridPosition.y);
+                
+                if (Random.Range(0, 9) > 4 && xDist > 0)
+                {
+                    delta = Vector2Int.right * (enemyPositions[i].x < playerGridPosition.x ? 1 : -1);
+                }
+                else if (yDist > 0)
+                {
+                    delta = Vector2Int.up * (enemyPositions[i].y < playerGridPosition.y ? 1 : -1);
+                }
+            }
+            // Move Randomly
+            else if (Random.Range(0, 9) > 5)
+            {
+                delta = moveDirections[Random.Range(0, moveDirections.Length)];
+            }
+            // Do not move
+            else continue;
+            
+            targetCell = enemyPositions[i] + delta;
+
+            targetState = grid[targetCell.x][targetCell.y];
+            willMove = targetState is CellState.Free or CellState.Marked;
+
+            if (willMove)
+            {
+                if (targetState == CellState.Marked || targetCell == playerGridPosition)
+                {
+                    HandlePlayerHit();
+                }
+                
+                grid[enemyPositions[i].x][enemyPositions[i].y] = CellState.Free;
+                grid[targetCell.x][targetCell.y] = CellState.Enemy;
+                enemyPositions[i] = targetCell;
+
+                gridChanged = true;
+            }
+        }
+    }
+
+    private void UpdateRenderGrid()
+    {
+        renderController.UpdateGrid(grid);
     }
 
     private void OnValidate()
@@ -206,7 +393,7 @@ public class GameplayController : MonoBehaviour
     {
         CellState cellState = grid[cellCoord.x][cellCoord.y];
         if (cellState == CellState.Free) return true;
-        if (cellState == CellState.Enemy || cellState == CellState.Marked) return false;
+        if (cellState == CellState.Marked) return false;
 
         if (cellState == CellState.Taken)
         {
@@ -279,7 +466,7 @@ public class GameplayController : MonoBehaviour
         {
             foreach (Vector2Int cell in fillArea)
             {
-                if (grid[cell.x][cell.y] == CellState.Enemy)
+                if (cell == bossGridPosition)
                 {
                     return 0;
                 }

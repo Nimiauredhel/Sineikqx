@@ -7,7 +7,7 @@ public class GameRenderController : MonoBehaviour
     [SerializeField] private Texture2D gameplayTextureBase;
 
     private Texture2D gameplayTexture;
-    private float playerVectorZ = 0.005f;
+    private float defVectorZ = 0.005f;
 
     public void Initialize()
     {
@@ -16,7 +16,12 @@ public class GameRenderController : MonoBehaviour
 
     public void UpdatePlayerPosition(Vector2 newPos)
     {
-        gameplayImage.material.SetVector("_PlayerPosition", new Vector4((newPos.x+0.5f)/Constants.GRID_SIZE, (newPos.y+0.5f)/Constants.GRID_SIZE, playerVectorZ));
+        gameplayImage.material.SetVector("_PlayerPosition", new Vector4((newPos.x+0.5f)/Constants.GRID_SIZE, (newPos.y+0.5f)/Constants.GRID_SIZE, defVectorZ));
+    }
+    
+    public void UpdateBossPosition(Vector2 newPos)
+    {
+        gameplayImage.material.SetVector("_BossPosition", new Vector4((newPos.x+0.5f)/Constants.GRID_SIZE, (newPos.y+0.5f)/Constants.GRID_SIZE, defVectorZ));
     }
 
     public void UpdateGrid(CellState[][] newGrid)
