@@ -30,6 +30,9 @@ public class GameplayController : MonoBehaviour
     private bool playerSafe = true;
     private bool actionButtonHeld = false;
     private int lives = 3;
+    private int filled = 0;
+    private float fillPercent = 0.0f;
+    private float visualFillPercent = 0.0f;
     private float playerTickCounter = 0.0f;
     private float enemyTickCounter = 0.0f;
     private float gridTickCounter = 0.0f;
@@ -110,6 +113,12 @@ public class GameplayController : MonoBehaviour
             renderController.UpdateBossPosition(bossVisualPosition);
         }
 
+        if (visualFillPercent != fillPercent)
+        {
+            visualFillPercent = Mathf.Lerp(visualFillPercent, fillPercent, playerVisualPosLerpSpeed * Time.deltaTime);
+            renderController.UpdateFillPercent(visualFillPercent);
+        }
+
         if (gridTickCounter < gridTickLength)
         {
             gridTickCounter += Time.deltaTime;
@@ -128,6 +137,7 @@ public class GameplayController : MonoBehaviour
     
     private void InitializeGrid()
     {
+        filled = 0;
         grid = new CellState[Constants.GRID_SIZE][];
 
         for (int x = 0; x < Constants.GRID_SIZE; x++)
@@ -139,6 +149,7 @@ public class GameplayController : MonoBehaviour
                 if (x == 0 || y == 0 || x == Constants.GRID_SIZE-1 || y == Constants.GRID_SIZE-1)
                 {
                     grid[x][y] = CellState.Taken;
+                    filled++;
                 }
                 else
                 {
@@ -146,6 +157,8 @@ public class GameplayController : MonoBehaviour
                 }
             }
         }
+
+        UpdateFillPercent();
 
         enemyPositions = new List<Vector2Int>();
         
@@ -284,8 +297,11 @@ public class GameplayController : MonoBehaviour
                 }
 
                 grid[cell.x][cell.y] = CellState.Taken;
+                filled++;
             }
         }
+        
+        UpdateFillPercent();
     }
 
     private void DeleteMarkedPath(bool fill)
@@ -296,6 +312,11 @@ public class GameplayController : MonoBehaviour
             Vector2Int markedCell = markedPath[i];
             markedPath.RemoveAt(i);
             grid[markedCell.x][markedCell.y] = fill ? CellState.Taken : CellState.Free;
+            
+            if (fill)
+            {
+                filled++;
+            }
         }
     }
 
@@ -377,6 +398,16 @@ public class GameplayController : MonoBehaviour
         }
         
         playerGridPosition = closestEdge;
+    }
+
+    private void CheckIfPlayerStuck()
+    {
+        bool stuck = false;
+
+        for (int i = 0; i < testDirections.Length; i++)
+        {
+            
+        }
     }
 
     private void MoveEnemies()
@@ -463,6 +494,11 @@ public class GameplayController : MonoBehaviour
                 gridChanged = true;
             }
         }
+    }
+
+    private void UpdateFillPercent()
+    {
+        fillPercent = filled / (float)(Constants.GRID_SIZE*Constants.GRID_SIZE);
     }
 
     private void UpdateRenderGrid()
@@ -604,7 +640,8 @@ public class GameplayController : MonoBehaviour
         {
             Vector2Int node = nodes.Pop();
             
-            // TODO: add boundary checking
+            if (node. x < 0 || node.x >= Constants.GRID_SIZE
+                || node. y < 0 || node.y >= Constants.GRID_SIZE) continue;
             
             CellState state = grid[node.x][node.y];
             

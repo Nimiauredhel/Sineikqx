@@ -23,6 +23,11 @@ public class GameRenderController : MonoBehaviour
     {
         gameplayImage.material.SetVector("_BossPosition", new Vector4((newPos.x+0.5f)/Constants.GRID_SIZE, (newPos.y+0.5f)/Constants.GRID_SIZE, defVectorZ));
     }
+    
+    public void UpdateFillPercent(float newFillPercent)
+    {
+        gameplayImage.material.SetFloat("_FillPercent", newFillPercent);
+    }
 
     public void UpdateGrid(CellState[][] newGrid)
     {
