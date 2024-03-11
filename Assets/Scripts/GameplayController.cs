@@ -33,7 +33,7 @@ public class GameplayController : MonoBehaviour
     private float enemyTickCounter = 0.0f;
     private float gridTickCounter = 0.0f;
     private CellState[][] grid;
-
+    
     private List<Vector2Int> markedPath = new List<Vector2Int>();
     private List<Vector2Int> enemyPositions = new List<Vector2Int>();
 
@@ -295,11 +295,15 @@ public class GameplayController : MonoBehaviour
     private void ReturnPlayerToEdge()
     {
         int closestDist = Constants.GRID_SIZE;
+        int currentDist = 0;
         Vector2Int closestEdge = playerInitialPosition;
         
         //Right
-        for (int x = playerGridPosition.x + 1; x < Constants.GRID_SIZE - 1; x++)
+        currentDist = 0;
+        for (int x = playerGridPosition.x + 1; x < Constants.GRID_SIZE; x++)
         {
+            currentDist++;
+            if (currentDist > closestDist) break;
             if (grid[x][playerGridPosition.y] == CellState.Taken)
             {
                 closestDist = x - playerGridPosition.x;
@@ -309,8 +313,11 @@ public class GameplayController : MonoBehaviour
         }
         
         //Left
-        for (int x = playerGridPosition.x; x >= 0 ; x--)
+        currentDist = 0;
+        for (int x = playerGridPosition.x-1; x >= 0 ; x--)
         {
+            currentDist++;
+            if (currentDist > closestDist) break;
             if (grid[x][playerGridPosition.y] == CellState.Taken)
             {
                 if (playerGridPosition.x - x < closestDist)
@@ -322,8 +329,11 @@ public class GameplayController : MonoBehaviour
         }
         
         //Up
-        for (int y = playerGridPosition.y + 1; y < Constants.GRID_SIZE - 1; y++)
+        currentDist = 0;
+        for (int y = playerGridPosition.y + 1; y < Constants.GRID_SIZE; y++)
         {
+            currentDist++;
+            if (currentDist > closestDist) break;
             if (grid[playerGridPosition.x][y] == CellState.Taken)
             {
                 if (y - playerGridPosition.y < closestDist)
@@ -337,8 +347,11 @@ public class GameplayController : MonoBehaviour
         }
         
         //Down
-        for (int y = playerGridPosition.y; y >= 0 ; y--)
+        currentDist = 0;
+        for (int y = playerGridPosition.y-1; y >= 0 ; y--)
         {
+            currentDist++;
+            if (currentDist > closestDist) break;
             if (grid[playerGridPosition.x][y] == CellState.Taken)
             {
                 if (playerGridPosition.y - y < closestDist)
