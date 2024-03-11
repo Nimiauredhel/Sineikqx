@@ -12,6 +12,8 @@ public class GameplayController : MonoBehaviour
     [SerializeField] private float enemyTickLength = 0.5f;
     [SerializeField] private float gridTickLength = 0.032f;
     [SerializeField] private float playerVisualPosLerpSpeed = 10.0f;
+    [SerializeField] private float bossVisualPosLerpSpeed = 5.0f;
+    [SerializeField] private float fillVisualLerpSpeed = 7.5f;
     [SerializeField] private Vector2Int playerInitialPosition;
     [SerializeField] private Vector2Int bossInitialPosition;
     [SerializeField] private GameRenderController renderController;
@@ -109,13 +111,13 @@ public class GameplayController : MonoBehaviour
 
         if (bossVisualPosition != bossGridPosition)
         {
-            bossVisualPosition = Vector2.Lerp(bossVisualPosition, bossGridPosition, playerVisualPosLerpSpeed*Time.deltaTime);
+            bossVisualPosition = Vector2.Lerp(bossVisualPosition, bossGridPosition, bossVisualPosLerpSpeed*Time.deltaTime);
             renderController.UpdateBossPosition(bossVisualPosition);
         }
 
         if (visualFillPercent != fillPercent)
         {
-            visualFillPercent = Mathf.Lerp(visualFillPercent, fillPercent, playerVisualPosLerpSpeed * Time.deltaTime);
+            visualFillPercent = Mathf.Lerp(visualFillPercent, fillPercent, fillVisualLerpSpeed * Time.deltaTime);
             renderController.UpdateFillPercent(visualFillPercent);
         }
 

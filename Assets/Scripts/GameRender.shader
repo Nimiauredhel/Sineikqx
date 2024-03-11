@@ -196,19 +196,26 @@ Shader "WeirdQix/GameRender"
 
                 // Draw Boss
                 float distFromBoss = distance(coord, _BossPosition);
-                
                 float bossDarkness = _BossPosition.z/pow(10, distFromBoss);
                 bossDarkness += 0.1 * noise(coord) + (0.1 * step(cellValue, 0.5) * step(0.25, cellValue));
+                float bossDistNoise = noise(distFromBoss);
+                float bossAmount = 1.0 - smoothstep(0.0, 0.75, 2.0*(distFromBoss+bossDistNoise));
+                bossAmount *= step(0.0, bossAmount);
+                bossDistNoise *= step(0.0, bossAmount);
+                bossAmount *= step(cellValue, 0.75);
+                _BossColor = lerp(_BossColor*0.75, _BossColor * 1.5, 1.0 - smoothstep(1.0, 0.05, distFromBoss+bossDistNoise*5.0));
+                col = lerp(col, _BossColor, bossAmount);
                 col = lerp(col, float4(0,0,0,0), bossDarkness);
-                col = lerp(col, _BossColor*0.8, smoothstep(0.01, 0.0, pow(distFromBoss, 3)));
-                col = lerp(col, _BossColor*1.1, step(distFromBoss, _BossPosition.w));
+                //col = lerp(col, _BossColor*0.8, smoothstep(0.01, 0.0, pow(distFromBoss, 3)));
+                //col = lerp(col, _BossColor*1.1, step(distFromBoss, _BossPosition.w));
                 
                 // Draw Waves
                 float globalWaveFluctuation = (_CosTime.w * 2.0 - 1.0) * 0.00001;
                 float2 ditherValue = gridCell * (1.0 - cellValue) * 0.75+ random(valueCoord) * 1.2 + globalWaveFluctuation ;
+                ditherValue *= 1.0 - (bossAmount*bossDistNoise*aberration);
                 float2 wave = fractalSinWave(1.0 + globalWaveFluctuation, aberration*42.265*valueCoord+ditherValue, _Time.y, 1.0 + globalWaveFluctuation, 32, 1.163, 0.84).y;
                 float waveNormal = wave.y * step(cellValue, 0.25);
-                col = lerp(col, col*2.0, waveNormal);
+                col = lerp(col, col*2.0, waveNormal-(bossAmount*bossDistNoise));
                 
                 // Draw Borders
                 float2 cellFrac = frac(gridCoord-0.5);
@@ -255,7 +262,8 @@ Shader "WeirdQix/GameRender"
                 //cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x, cloudCoord.y-blurDistance)), blurAmount);
                 cloudAmount *= step(0.5, cellValue);
                 cloudAmount -= wave.y * wave.x * 0.12;
-                col = lerp(col + (wave.y * 2.0 - 1.0) * 0.005, float4(1.0,1.0,1.0,1.0), cloudAmount*cloudModifier);
+                float4 cloudCol = lerp(float4(1.0,1.0,1.0,1.0), float4(0.0, 1.0 - distFromBoss, 0.0, 1.0), step(distFromBoss*5.0-cloudAmount, 0.01));
+                col = lerp(col + (wave.y * 2.0 - 1.0) * 0.005, cloudCol, cloudAmount*cloudModifier);
                 
                 return col;
             }

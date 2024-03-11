@@ -74,7 +74,7 @@ Material:
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
-    - _FillPercent: 0.8383786
+    - _FillPercent: 0.7829584
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
@@ -92,15 +92,15 @@ Material:
     m_Colors:
     - _BGColor: {r: 0.48101193, g: 0.47564965, b: 0.5849056, a: 1}
     - _BorderColor: {r: 0.6392157, g: 0.6509804, b: 0.93333334, a: 0.3647059}
-    - _BossColor: {r: 0.3, g: 0.39999998, b: 0.3, a: 1}
-    - _BossPosition: {r: 0.38905698, g: 0.58532596, b: 0.005, a: 0}
+    - _BossColor: {r: 0.33759344, g: 0.5471698, b: 0.33759344, a: 1}
+    - _BossPosition: {r: 0.6951656, g: 0.6256994, b: 0.005, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FreeCellColor: {r: 1, g: 1, b: 1, a: 1}
     - _GridColor: {r: 0.6383836, g: 0.6496709, b: 0.93207544, a: 0}
     - _MarkedCellColor: {r: 1, g: 1, b: 1, a: 1}
     - _PlayerColor: {r: 0.80784315, g: 0.42745098, b: 0.54509807, a: 1}
-    - _PlayerPosition: {r: 0.7265622, g: 0.6640628, b: 0.005, a: 0}
+    - _PlayerPosition: {r: 0.8359372, g: 0.6953122, b: 0.005, a: 0}
     - _SunDirection: {r: 20, g: 33.29, b: -2, a: 0.2}
     - _TakenCellColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
