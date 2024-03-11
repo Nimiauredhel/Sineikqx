@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
@@ -327,6 +328,11 @@ public class GameplayController : MonoBehaviour
         ReturnPlayerToEdge();
         lives--;
         DeleteMarkedPath(false);
+
+        if (lives <= 0)
+        {
+            SceneManager.LoadScene(0);
+        }
     }
 
     private void ReturnPlayerToEdge()
@@ -455,7 +461,7 @@ public class GameplayController : MonoBehaviour
         for (int i = 0; i < enemyPositions.Count; i++)
         {
             // Move to Player
-            if (Random.Range(0, 9) > (playerSafe ? 9 : 1))
+            if (fillPercent > (playerSafe ? Random.Range(7.0f, 10.0f)*0.1 : (Random.Range(0.0f, 10.0f)-markedPath.Count*0.4)*0.1))
             {
                 int xDist = Mathf.Abs(enemyPositions[i].x - playerGridPosition.x);
                 int yDist = Mathf.Abs(enemyPositions[i].y - playerGridPosition.y);
@@ -478,7 +484,11 @@ public class GameplayController : MonoBehaviour
             else continue;
             
             targetCell = enemyPositions[i] + delta;
-
+            
+            if (targetCell.x < 0 || targetCell.x >= Constants.GRID_SIZE
+                || targetCell.y < 0 || targetCell.y >= Constants.GRID_SIZE)
+                continue;
+            
             targetState = grid[targetCell.x][targetCell.y];
             willMove = targetState is CellState.Free or CellState.Marked;
 
@@ -500,7 +510,7 @@ public class GameplayController : MonoBehaviour
 
     private void UpdateFillPercent()
     {
-        fillPercent = filled / (float)(Constants.GRID_SIZE*Constants.GRID_SIZE);
+        fillPercent = filled / (float)(Constants.GRID_SIZE*Constants.GRID_SIZE)*0.75f;
     }
 
     private void UpdateRenderGrid()

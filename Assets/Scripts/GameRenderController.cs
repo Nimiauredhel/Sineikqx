@@ -3,6 +3,7 @@ using UnityEngine.UI;
 
 public class GameRenderController : MonoBehaviour
 {
+    [SerializeField] private bool cloneMaterial = true;
     [SerializeField] private RawImage gameplayImage;
     [SerializeField] private Texture2D gameplayTextureBase;
 
@@ -11,6 +12,11 @@ public class GameRenderController : MonoBehaviour
 
     public void Initialize()
     {
+        if (cloneMaterial)
+        {
+            gameplayImage.material = new Material(gameplayImage.material);
+        }
+        
         SetTextureFromBase();
     }
 
