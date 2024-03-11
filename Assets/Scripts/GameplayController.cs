@@ -287,9 +287,69 @@ public class GameplayController : MonoBehaviour
 
     private void HandlePlayerHit()
     {
-        playerGridPosition = playerInitialPosition;
+        ReturnPlayerToEdge();
         lives--;
         DeleteMarkedPath(false);
+    }
+
+    private void ReturnPlayerToEdge()
+    {
+        int closestDist = Constants.GRID_SIZE;
+        Vector2Int closestEdge = playerInitialPosition;
+        
+        //Right
+        for (int x = playerGridPosition.x + 1; x < Constants.GRID_SIZE - 1; x++)
+        {
+            if (grid[x][playerGridPosition.y] == CellState.Taken)
+            {
+                closestDist = x - playerGridPosition.x;
+                closestEdge = new Vector2Int(x, playerGridPosition.y);
+                break;
+            }
+        }
+        
+        //Left
+        for (int x = playerGridPosition.x; x >= 0 ; x--)
+        {
+            if (grid[x][playerGridPosition.y] == CellState.Taken)
+            {
+                if (playerGridPosition.x - x < closestDist)
+                {
+                    closestDist = playerGridPosition.x - x;
+                    closestEdge = new Vector2Int(x, playerGridPosition.y);
+                }
+            }
+        }
+        
+        //Up
+        for (int y = playerGridPosition.y + 1; y < Constants.GRID_SIZE - 1; y++)
+        {
+            if (grid[playerGridPosition.x][y] == CellState.Taken)
+            {
+                if (y - playerGridPosition.y < closestDist)
+                {
+                    closestDist = y - playerGridPosition.y;
+                    closestEdge = new Vector2Int(playerGridPosition.x, y);
+                }
+                
+                break;
+            }
+        }
+        
+        //Down
+        for (int y = playerGridPosition.y; y >= 0 ; y--)
+        {
+            if (grid[playerGridPosition.x][y] == CellState.Taken)
+            {
+                if (playerGridPosition.y - y < closestDist)
+                {
+                    closestDist = playerGridPosition.y - y;
+                    closestEdge = new Vector2Int(playerGridPosition.x, y);
+                }
+            }
+        }
+        
+        playerGridPosition = closestEdge;
     }
 
     private void MoveEnemies()

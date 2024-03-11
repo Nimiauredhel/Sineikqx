@@ -172,7 +172,7 @@ Shader "WeirdQix/GameRender"
 
             fixed4 frag (v2f i) : SV_Target
             {
-                fixed4 col;
+                float4 col;
                 float2 coord = i.uv;
                 float coordFrac = frac(coord);
                 float coordFloor = floor(coord);
@@ -191,7 +191,8 @@ Shader "WeirdQix/GameRender"
                 float aberration = 1.0-cos(_Time.x)*0.1;
 
                 // Draw Boss
-                fixed distFromBoss = distance(coord, _BossPosition);
+                float distFromBoss = distance(coord, _BossPosition);
+                
                 float bossDarkness = _BossPosition.z/pow(10, distFromBoss);
                 bossDarkness += 0.1 * noise(coord) + (0.1 * step(cellValue, 0.5) * step(0.25, cellValue));
                 col = lerp(col, float4(0,0,0,0), bossDarkness);
@@ -225,10 +226,11 @@ Shader "WeirdQix/GameRender"
                 col = lerp(col, _BorderColor, _BorderColor.a * (1.0 - smoothstep(distFromGrid.y, 0.0, _BorderThickness)));
 
                 // Draw Player
-                fixed xDistFromPlayer = distance(coord.x, _PlayerPosition.x);
-                fixed yDistFromPlayer = distance(coord.y, _PlayerPosition.y);
-                fixed combinedDistFromPlayer = xDistFromPlayer + yDistFromPlayer;
-                fixed lightDistanceFromPlayer = lerp(max(xDistFromPlayer, yDistFromPlayer), min(xDistFromPlayer, yDistFromPlayer), 0.75);
+                float xDistFromPlayer = distance(coord.x, _PlayerPosition.x);
+                float yDistFromPlayer = distance(coord.y, _PlayerPosition.y);
+                float combinedDistFromPlayer = xDistFromPlayer + yDistFromPlayer;
+                float lightDistanceFromPlayer = lerp(max(xDistFromPlayer, yDistFromPlayer), min(xDistFromPlayer, yDistFromPlayer), 0.75);
+                lightDistanceFromPlayer += wave.y * 0.0075;
                 col = lerp(col, _PlayerColor, max(0.0, _PlayerPosition.z)/lightDistanceFromPlayer);
                 col = lerp(col, _PlayerColor, step(combinedDistFromPlayer, _PlayerPosition.w));
                 col = lerp(col, float4(0,0,0,0), combinedDistFromPlayer*0.4);
