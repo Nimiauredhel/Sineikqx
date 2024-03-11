@@ -28,6 +28,7 @@ public class GameplayController : MonoBehaviour
     private bool gridChanged = false;
     private bool lastWasUp = false;
     private bool playerSafe = true;
+    private bool actionButtonHeld = false;
     private int lives = 3;
     private float playerTickCounter = 0.0f;
     private float enemyTickCounter = 0.0f;
@@ -43,6 +44,18 @@ public class GameplayController : MonoBehaviour
         new Vector2Int(0, 1),
         new Vector2Int(-1, 0),
         new Vector2Int(0, -1)
+    };
+
+    private Vector2Int[] testDirections = new Vector2Int[]
+    {
+        new Vector2Int(1, 0),
+        new Vector2Int(0, 1),
+        new Vector2Int(-1, 0),
+        new Vector2Int(0, -1),
+        new Vector2Int(1, 1),
+        new Vector2Int(-1, -1),
+        new Vector2Int(1, -1),
+        new Vector2Int(-1, 1)
     };
 
     private void Start()
@@ -153,6 +166,7 @@ public class GameplayController : MonoBehaviour
 
     private void ReadInput()
     {
+        actionButtonHeld = Input.GetAxis("Fire1") > 0.0f;
         float xInput = Input.GetAxis("Horizontal");
         float yInput = Input.GetAxis("Vertical");
 
@@ -465,19 +479,29 @@ public class GameplayController : MonoBehaviour
     private bool IsCellWalkableToPlayer(Vector2Int cellCoord)
     {
         CellState cellState = grid[cellCoord.x][cellCoord.y];
-        if (cellState == CellState.Free) return true;
+        if (cellState == CellState.Free && actionButtonHeld) return true;
         if (cellState == CellState.Marked) return false;
 
         if (cellState == CellState.Taken)
         {
-            if (grid[playerGridPosition.x][playerGridPosition.y] == CellState.Marked
-                || cellCoord.x == 0 || cellCoord.y == 0
-                || cellCoord.x == Constants.GRID_SIZE - 1 || cellCoord.y == Constants.GRID_SIZE - 1
-                || grid[cellCoord.x + 1][cellCoord.y] == CellState.Free
-                || grid[cellCoord.x][cellCoord.y + 1] == CellState.Free
-                || grid[cellCoord.x - 1][cellCoord.y] == CellState.Free
-                || grid[cellCoord.x][cellCoord.y - 1] == CellState.Free)
-                return true;
+            if (cellCoord.x >= 0 && cellCoord.y >= 0 && cellCoord.x < Constants.GRID_SIZE && cellCoord.y < Constants.GRID_SIZE)
+            {
+                Vector2Int testDir;
+                
+                for (int i = 0; i < testDirections.Length; i++)
+                {
+                    testDir = cellCoord + testDirections[i];
+
+                    if (testDir.x >= 0 && testDir.x < Constants.GRID_SIZE
+                                       && testDir.y >= 0 && testDir.y < Constants.GRID_SIZE)
+                    {
+                        if (grid[testDir.x][testDir.y] == CellState.Free)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
         }
 
         return false;
