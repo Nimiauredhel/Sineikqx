@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 public class GameplayController : MonoBehaviour
@@ -18,6 +18,8 @@ public class GameplayController : MonoBehaviour
     [SerializeField] private Vector2Int playerInitialPosition;
     [SerializeField] private Vector2Int bossInitialPosition;
     [SerializeField] private GameRenderController renderController;
+    [SerializeField] private Image instructionImage;
+    [SerializeField] private Sprite[] instructionSprites;
 
     private Vector2Int playerGridPosition = new Vector2Int(0, 0);
     private Vector2 playerVisualPosition = new Vector2();
@@ -37,6 +39,7 @@ public class GameplayController : MonoBehaviour
     private bool playerSafe = true;
     private bool actionButtonHeld = false;
     private int filled = 0;
+    private int currentInstruction = 0;
     private float fillPercent = 0.0f;
     private float visualFillPercent = 0.0f;
     private float playerHealth = 1.0f;
@@ -164,6 +167,10 @@ public class GameplayController : MonoBehaviour
         gameOver = false;
         playerHealth = 1.0f;
         
+        currentInstruction = 0;
+        instructionImage.sprite = instructionSprites[0];
+        instructionImage.enabled = false;
+        
         InitializeGrid();
         renderController.Initialize();
         playerGridPosition = playerInitialPosition;
@@ -181,6 +188,7 @@ public class GameplayController : MonoBehaviour
         renderController.UpdateBossPosition(bossVisualPosition);
         
         yield return StartCoroutine(renderController.UpdateGridFancy(grid));
+        instructionImage.enabled = true;
         started = true;
     }
 
@@ -306,6 +314,12 @@ public class GameplayController : MonoBehaviour
             grid[playerGridPosition.x][playerGridPosition.y] = CellState.Marked;
             markedPath.Add(playerGridPosition);
             UpdateMarkStrength();
+            
+            if (currentInstruction < 2)
+            {
+                currentInstruction = 2;
+                instructionImage.sprite = instructionSprites[2];
+            }
 
             if (markedPath.Count >= maxMarkLength)
             {
@@ -334,6 +348,13 @@ public class GameplayController : MonoBehaviour
 
         gridChanged = true;
         lastMovementVector = delta;
+        
+        if (currentInstruction == 0)
+        {
+            currentInstruction = 1;
+            instructionImage.sprite = instructionSprites[1];
+        }
+        
         return true;
     }
 
@@ -415,6 +436,12 @@ public class GameplayController : MonoBehaviour
 
         yield return StartCoroutine(renderController.UpdateFillIncremental(newTaken, newEdges));
         paused = false;
+        
+        if (currentInstruction == 2)
+        {
+            currentInstruction = 3;
+            instructionImage.enabled = false;
+        }
     }
 
     private void DeleteMarkedPath(bool fill)
