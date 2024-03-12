@@ -285,14 +285,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc9f269979231d64ca115dc1755cda79, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  noDiagonals: 1
   initialEnemyCount: 3
-  playerTickLength: 0.05
+  maxMarkLength: 48
+  playerTickLength: 0.075
   enemyTickLength: 0.05
   gridTickLength: 0.032
   playerVisualPosLerpSpeed: 12
   bossVisualPosLerpSpeed: 5
-  fillVisualLerpSpeed: 7.5
+  gridVisualLerpSpeed: 7.5
   playerInitialPosition: {x: 0, y: 63}
   bossInitialPosition: {x: 31, y: 31}
   renderController: {fileID: 162094923}

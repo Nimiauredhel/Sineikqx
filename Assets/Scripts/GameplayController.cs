@@ -8,12 +8,13 @@ using Random = UnityEngine.Random;
 public class GameplayController : MonoBehaviour
 {
     [SerializeField] private int initialEnemyCount = 3;
+    [SerializeField] private int maxMarkLength = 64;
     [SerializeField] private float playerTickLength = 0.064f;
     [SerializeField] private float enemyTickLength = 0.5f;
     [SerializeField] private float gridTickLength = 0.032f;
     [SerializeField] private float playerVisualPosLerpSpeed = 10.0f;
     [SerializeField] private float bossVisualPosLerpSpeed = 5.0f;
-    [SerializeField] private float fillVisualLerpSpeed = 7.5f;
+    [SerializeField] private float gridVisualLerpSpeed = 7.5f;
     [SerializeField] private Vector2Int playerInitialPosition;
     [SerializeField] private Vector2Int bossInitialPosition;
     [SerializeField] private GameRenderController renderController;
@@ -35,6 +36,8 @@ public class GameplayController : MonoBehaviour
     private int filled = 0;
     private float fillPercent = 0.0f;
     private float visualFillPercent = 0.0f;
+    private float markStrength = 1.0f;
+    private float visualMarkStrength = 1.0f;
     private float playerTickCounter = 0.0f;
     private float enemyTickCounter = 0.0f;
     private float gridTickCounter = 0.0f;
@@ -117,8 +120,14 @@ public class GameplayController : MonoBehaviour
 
         if (Math.Abs(visualFillPercent - fillPercent) > 0.005f)
         {
-            visualFillPercent = Mathf.Lerp(visualFillPercent, fillPercent, fillVisualLerpSpeed * Time.deltaTime);
+            visualFillPercent = Mathf.Lerp(visualFillPercent, fillPercent, gridVisualLerpSpeed * Time.deltaTime);
             renderController.UpdateFillPercent(visualFillPercent);
+        }
+        
+        if (Math.Abs(visualMarkStrength - markStrength) > 0.005f)
+        {
+            visualMarkStrength = Mathf.Lerp(visualMarkStrength, markStrength, gridVisualLerpSpeed * Time.deltaTime);
+            renderController.UpdateMarkStrength(visualMarkStrength);
         }
 
         if (gridTickCounter < gridTickLength)
@@ -225,6 +234,7 @@ public class GameplayController : MonoBehaviour
             {
                 if (!TryUpdatePlayerGridPosition(delta) && IsPlayerStuck())
                 {
+                    DeleteMarkedPath(false);
                     ReturnPlayerToEdge();
                 }
             }
@@ -257,8 +267,14 @@ public class GameplayController : MonoBehaviour
             playerSafe = false;
             grid[playerGridPosition.x][playerGridPosition.y] = CellState.Marked;
             markedPath.Add(playerGridPosition);
-            
-            if (markedPath.Count > 2)
+            UpdateMarkStrength();
+
+            if (markedPath.Count >= maxMarkLength)
+            {
+                DeleteMarkedPath(false);
+                ReturnPlayerToEdge();
+            }
+            else if (markedPath.Count > 2)
             {
                 AdjacencyCheck();
             }
@@ -347,6 +363,8 @@ public class GameplayController : MonoBehaviour
                 filled++;
             }
         }
+        
+        UpdateMarkStrength();
     }
 
     private void HandlePlayerHit()
@@ -551,6 +569,11 @@ public class GameplayController : MonoBehaviour
         fillPercent = filled / (float)(Constants.GRID_SIZE*Constants.GRID_SIZE)*0.75f;
     }
 
+    private void UpdateMarkStrength()
+    {
+        markStrength = 1.0f - ((float)markedPath.Count/maxMarkLength);
+    }
+
     private void UpdateRenderGrid()
     {
         renderController.UpdateGrid(grid);
@@ -664,7 +687,7 @@ public class GameplayController : MonoBehaviour
         {
             int score = ScoreFillArea(fillArea);
             
-            if (score > 16 && score < lowestScore)
+            if (score > 16 && score < 1024 && score < lowestScore)
             {
                 fillSuccess = true;
                 validFillAreas.Clear();

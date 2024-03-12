@@ -35,6 +35,11 @@ public class GameRenderController : MonoBehaviour
         gameplayImage.material.SetFloat("_FillPercent", newFillPercent);
     }
 
+    public void UpdateMarkStrength(float newMarkStrength)
+    {
+        gameplayImage.material.SetFloat("_MarkStrength", newMarkStrength);
+    }
+
     public void UpdateGrid(CellState[][] newGrid)
     {
         if (gameplayTexture == null)

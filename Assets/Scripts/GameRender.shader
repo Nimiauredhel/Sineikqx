@@ -12,6 +12,7 @@ Shader "WeirdQix/GameRender"
         _SunDirection("Sun Direction", vector) = (1,1,1,1)
         _SunIntensity("Sun Intensity", float) = 1.0
         
+        _MarkStrength("Mark Strength", Range(0.0, 1.0)) = 1.0
         _FillPercent("Fill Percent", Range(0.0, 1.0)) = 0.5
         
         _PlayerPosition ("Player Position", Vector) = (0.5, 0.5, 1, 1)
@@ -55,6 +56,7 @@ Shader "WeirdQix/GameRender"
             float4 _BossPosition;
             float4 _BossColor;
 
+            float _MarkStrength;
             float _FillPercent;
             
             float4 _BorderColor;
@@ -181,6 +183,8 @@ Shader "WeirdQix/GameRender"
                 float coordFrac = frac(coord);
                 float coordFloor = floor(coord);
 
+                float aberration = 1.0-cos(_Time.x)*0.1;
+                
                 // Determine Cell Type
                 float outOfBoundsAmount = abs(coordFloor) * min(coordFrac, 1.0 - abs(coordFrac));
                 float outOfBoundsDistortion = (sign(coordFloor) * _CosTime.y * 2.0 - 1.0) * (outOfBoundsAmount * (noise(coord) * 2.0 - 1.0) * 0.3 * sin(coord) + random(coord) * (outOfBoundsAmount*0.05));
@@ -188,11 +192,13 @@ Shader "WeirdQix/GameRender"
                 float2 gridCoord = float2(valueCoord.x * _GridSize, valueCoord.y * _GridSize);
                 float2 gridCell = floor(gridCoord);
                 float cellValue = tex2D(_GameStateMap, valueCoord).a;
+                float markDegradation = step(0.5, cellValue) * step(cellValue, 0.75) * (1.0-_MarkStrength) * aberration * (1.0 + noise(gridCoord+_Time.y));
+                cellValue = lerp(cellValue, 0.2, markDegradation);
                 col = tex2D(_CellColorRamp, float2(cellValue, cellValue));
                 _SunDirection.x = 15 + (_PlayerPosition.y * 2.0 - 1.0) * 10.0;
                 _SunDirection.y = 15 + (_PlayerPosition.x * 2.0 - 1.0) * 10.0;
                 _SunDirection.xyz *= _SunDirection.w;
-                float aberration = 1.0-cos(_Time.x)*0.1;
+                
 
                 // Draw Boss
                 float distFromBoss = distance(coord, _BossPosition);
