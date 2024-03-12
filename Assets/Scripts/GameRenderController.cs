@@ -113,7 +113,7 @@ public class GameRenderController : MonoBehaviour
         yield return null;
         
         int waitCounter = 0;
-        int threshold = Random.Range(7, 10);
+        int threshold = Random.Range(10, 15);
         
         foreach (Vector3Int coord in pixelCoords)
         {
@@ -124,7 +124,7 @@ public class GameRenderController : MonoBehaviour
             if (waitCounter > threshold)
             {
                 waitCounter = 0;
-                threshold = Random.Range(7, 10);
+                threshold = Random.Range(10, 15);
                 yield return null;
             }
         }
@@ -151,7 +151,7 @@ public class GameRenderController : MonoBehaviour
         yield return null;
         
         int waitCounter = 0;
-        int threshold = Random.Range(7, 10);
+        int threshold = Random.Range(10, 15);
         
         foreach (Vector3Int coord in pixelCoords)
         {
@@ -162,7 +162,7 @@ public class GameRenderController : MonoBehaviour
             if (waitCounter > threshold)
             {
                 waitCounter = 0;
-                threshold = Random.Range(7, 10);
+                threshold = Random.Range(10, 15);
                 yield return null;
             }
         }
@@ -170,11 +170,11 @@ public class GameRenderController : MonoBehaviour
 
     public IEnumerator UpdateFillIncremental(List<Vector2Int> newTaken, List<Vector2Int> newEdges)
     {
+        Application.targetFrameRate = 30;
         newTaken.Shuffle();
-        newEdges.Shuffle();
 
         int waitCounter = 0;
-        int threshold = Random.Range(1, 2);
+        int threshold = Random.Range(12, 15);
         Color cellColor = Color.red;
         
         foreach (Vector2Int coord in newTaken)
@@ -186,12 +186,15 @@ public class GameRenderController : MonoBehaviour
             if (waitCounter > threshold)
             {
                 waitCounter = 0;
-                threshold = Random.Range(1, 2);
+                threshold = Random.Range(12, 15);
                 yield return null;
             }
         }
 
         cellColor.a = 0.87f;
+        Application.targetFrameRate = 15;
+        threshold = 8;
+        yield return null;
         
         foreach (Vector2Int coord in newEdges)
         {
@@ -202,10 +205,11 @@ public class GameRenderController : MonoBehaviour
             if (waitCounter > threshold)
             {
                 waitCounter = 0;
-                threshold = Random.Range(1, 2);
                 yield return null;
             }
         }
+        
+        Application.targetFrameRate = 60;
     }
 
     private void SetTextureFromBase()
