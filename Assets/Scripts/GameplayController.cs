@@ -337,7 +337,7 @@ public class GameplayController : MonoBehaviour
             
             if (markedPath.Count > 0)
             {
-                HandlePlayerFinishedMark();
+                StartCoroutine(HandlePlayerFinishedMark());
             }
         }
         else if (targetState == CellState.Enemy)
@@ -373,15 +373,16 @@ public class GameplayController : MonoBehaviour
             
             if (grid[current.x][current.y] >= CellState.Edge)
             {
-                HandlePlayerFinishedMark();
+                StartCoroutine(HandlePlayerFinishedMark());
                 ReturnPlayerToEdge();
                 return;
             }
         }
     }
 
-    private void HandlePlayerFinishedMark()
+    private IEnumerator HandlePlayerFinishedMark()
     {
+        paused = true;
         // Determine if any cells need to be filled
         bool fillSuccess;
         List<HashSet<Vector2Int>> areasToFill = DetermineFillAreas(out fillSuccess);
@@ -399,7 +400,7 @@ public class GameplayController : MonoBehaviour
                 }
             }
 
-            StartCoroutine(RenderFillEvent(newTaken, newEdges));
+            yield return StartCoroutine(RenderFillEvent(newTaken, newEdges));
         }
 
         DeleteMarkedPath(fillSuccess);
@@ -422,6 +423,7 @@ public class GameplayController : MonoBehaviour
         }
         
         UpdateFillPercent();
+        paused = false;
 
         if (fillPercent > 0.75f)
         {
