@@ -42,6 +42,9 @@ Shader "WeirdQix/GameRender"
                 float4 vertex : SV_POSITION;
             };
 
+            float4 _White = float4(1.0, 1.0, 1.0, 1.0);
+            float4 _Black = float4(0.0,0.0,0.0, 1.0);
+            
             float4 _SunDirection;
             float _SunIntensity;
             
@@ -153,8 +156,8 @@ Shader "WeirdQix/GameRender"
             {
                 float testDist = 0.002;
                 float nValue = -1.0;
-                float tempValue = -1.0;
-                float difference = 0.0;
+                float tempValue;
+                float difference;
 
                 //right
                 tempValue = tex2D(_GameStateMap, float2(coord.x+testDist, coord.y)).a;
@@ -211,7 +214,7 @@ Shader "WeirdQix/GameRender"
                 bossAmount *= step(cellValue, 0.75);
                 _BossColor = lerp(_BossColor*0.75, _BossColor * 1.5, 1.0 - smoothstep(1.0, 0.05, distFromBoss+bossDistNoise*5.0));
                 col = lerp(col, _BossColor, bossAmount);
-                col = lerp(col, float4(0,0,0,0), bossDarkness);
+                col = lerp(col, _Black, bossDarkness);
                 //col = lerp(col, _BossColor*0.8, smoothstep(0.01, 0.0, pow(distFromBoss, 3)));
                 //col = lerp(col, _BossColor*1.1, step(distFromBoss, _BossPosition.w));
                 
@@ -220,7 +223,7 @@ Shader "WeirdQix/GameRender"
                 float2 ditherValue = gridCell * (1.0 - cellValue) * 0.75+ random(valueCoord) * 1.2 + globalWaveFluctuation ;
                 ditherValue *= 1.0 - (bossAmount*bossDistNoise*aberration);
                 float2 wave = fractalSinWave(1.0 + globalWaveFluctuation, aberration*42.265*valueCoord+ditherValue, _Time.y, 1.0 + globalWaveFluctuation, 32, 1.163, 0.84).y;
-                float waveNormal = wave.y * step(cellValue, 0.25);
+                float waveNormal = sin(wave.y * step(cellValue, 0.25));
                 col = lerp(col, col*2.0, waveNormal-(bossAmount*bossDistNoise));
                 
                 // Draw Borders
@@ -232,16 +235,19 @@ Shader "WeirdQix/GameRender"
                 col = lerp(col, _BorderColor, _BorderColor.a * (waveEffect + 1.0 - smoothstep(distFromGrid.x, 0.0, _BorderThickness)));
                 col = lerp(col, _BorderColor, _BorderColor.a * (waveEffect + 1.0 - smoothstep(distFromGrid.y, 0.0, _BorderThickness)));
 
+
                 // Draw Bounds & fill indicator & this is really convoluted eh
                 float boundCoordNoise = 0.02*noise(coord*50.0+_Time.w*2.3)*noise(coord*12.3+_SinTime.z*5.2);
-                float2 boundCoord = valueCoord - boundCoordNoise;
+                float boundRange = 0.075 * _FillPercent;
+                float2 boundCoord = valueCoord + lerp(-boundRange, boundRange, 0.4+boundCoordNoise*25.0);
                 float2 floorBoundCoord = floor(boundCoord+1.0);
                 float fillCoord = min(frac(boundCoord.x - floorBoundCoord.x*0.01), frac(boundCoord.y - floorBoundCoord.y*0.01));
                 float fillIndex = 1.0 - smoothstep(_FillPercent, _FillPercent, min(fillCoord, 1.0 - fillCoord) * 2.0);
                 float boundThickness = lerp(0.0025, 0.007*_FillPercent, fillIndex);
+                float halfThickness = boundThickness * 0.5;
                 _BorderColor = lerp(float4(0.22, 0.22, 0.0, 1.0), float4(1.0, 1.0, boundCoordNoise+0.5*_FillPercent*length(distFromGrid)*aberration, 1.0), fillIndex);
-                _BorderColor.a *= (step(boundCoord.x, 0.0) * step(0.0, boundCoord.x+boundThickness)) + (step(boundCoord.x-boundThickness, 1.0) * step(1.0, boundCoord.x))
-                + (step(boundCoord.y, 0.0) * step(0.0, boundCoord.y+boundThickness)) + (step(boundCoord.y-boundThickness, 1.0) * step(1.0, boundCoord.y));
+                _BorderColor.a *= (step(boundCoord.x-halfThickness, 0.0) * step(0.0, boundCoord.x+halfThickness)) + (step(boundCoord.x-halfThickness, 1.0) * step(1.0, boundCoord.x+halfThickness))
+                + (step(boundCoord.y-halfThickness, 0.0) * step(0.0, boundCoord.y+halfThickness)) + (step(boundCoord.y-halfThickness, 1.0) * step(1.0, boundCoord.y+halfThickness));
                 col = lerp(col, _BorderColor, _BorderColor.a * (1.0 - smoothstep(distFromGrid.x, 0.0, _BorderThickness)));
                 col = lerp(col, _BorderColor, _BorderColor.a * (1.0 - smoothstep(distFromGrid.y, 0.0, _BorderThickness)));
 
