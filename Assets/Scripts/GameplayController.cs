@@ -7,7 +7,7 @@ using Random = UnityEngine.Random;
 
 public class GameplayController : MonoBehaviour
 {
-    [SerializeField] private bool oneDimensionalMovement;
+    [FormerlySerializedAs("oneDimensionalMovement")] [SerializeField] private bool noDiagonals;
     [SerializeField] private int initialEnemyCount = 3;
     [SerializeField] private float playerTickLength = 0.064f;
     [SerializeField] private float enemyTickLength = 0.5f;
@@ -25,11 +25,11 @@ public class GameplayController : MonoBehaviour
     private Vector2Int bossGridPosition = new Vector2Int(31, 31);
     private Vector2 bossVisualPosition = new Vector2();
     
+    private Vector2Int lastMovementVector = Vector2Int.zero;
     private Vector2 currentInputVector = Vector2.zero;
     private Vector2 scheduledInputVector = Vector2.zero;
 
     private bool gridChanged = false;
-    private bool lastWasUp = false;
     private bool playerSafe = true;
     private bool actionButtonHeld = false;
     private int lives = 3;
@@ -106,17 +106,17 @@ public class GameplayController : MonoBehaviour
         
         if (playerVisualPosition != playerGridPosition)
         {
-            playerVisualPosition = Vector2.Lerp(playerVisualPosition, playerGridPosition, playerVisualPosLerpSpeed*Time.deltaTime);
+            playerVisualPosition = Vector2.Lerp(playerVisualPosition, playerGridPosition, playerVisualPosLerpSpeed * Time.deltaTime);
             renderController.UpdatePlayerPosition(playerVisualPosition);
         }
 
         if (bossVisualPosition != bossGridPosition)
         {
-            bossVisualPosition = Vector2.Lerp(bossVisualPosition, bossGridPosition, bossVisualPosLerpSpeed*Time.deltaTime);
+            bossVisualPosition = Vector2.Lerp(bossVisualPosition, bossGridPosition, bossVisualPosLerpSpeed * Time.deltaTime);
             renderController.UpdateBossPosition(bossVisualPosition);
         }
 
-        if (visualFillPercent != fillPercent)
+        if (Math.Abs(visualFillPercent - fillPercent) > 0.005f)
         {
             visualFillPercent = Mathf.Lerp(visualFillPercent, fillPercent, fillVisualLerpSpeed * Time.deltaTime);
             renderController.UpdateFillPercent(visualFillPercent);
@@ -186,35 +186,6 @@ public class GameplayController : MonoBehaviour
         float xInput = Input.GetAxis("Horizontal");
         float yInput = Input.GetAxis("Vertical");
 
-        if (oneDimensionalMovement)
-        {
-            float absX = Mathf.Abs(xInput);
-            float absY = Mathf.Abs(yInput);
-
-            if (absX > absY)
-            {
-                lastWasUp = false;
-                yInput = 0.0f;
-            }
-            else if (absY > absX)
-            {
-                lastWasUp = true;
-                xInput = 0.0f;
-            }
-            else if (absX > 0.0f && absY > 0.0f)
-            {
-                if (lastWasUp)
-                {
-                    lastWasUp = false;
-                    yInput = 0.0f;
-                }
-                else
-                {
-                    xInput = 0.0f;
-                }
-            }
-        }
-
         currentInputVector = new Vector2(xInput, yInput);
         
         if (currentInputVector.magnitude > 0.0f)
@@ -230,11 +201,35 @@ public class GameplayController : MonoBehaviour
             Vector2Int delta = new Vector2Int(Math.Sign(scheduledInputVector.x), Math.Sign(scheduledInputVector.y));
             currentInputVector = Vector2Int.zero;
             scheduledInputVector = Vector2.zero;
-            UpdatePlayerGridPosition(delta);
+            
+            if (delta.x != 0 && delta.y != 0)
+            {
+                Vector2Int h = new Vector2Int(delta.x, 0);
+                Vector2Int v = new Vector2Int(0, delta.y);
+
+                if (lastMovementVector.x == 0)
+                {
+                    if (!TryUpdatePlayerGridPosition(h))
+                    {
+                        TryUpdatePlayerGridPosition(v);
+                    }
+                }
+                else
+                {
+                    if (!TryUpdatePlayerGridPosition(v))
+                    {
+                        TryUpdatePlayerGridPosition(h);
+                    }
+                }
+            }
+            else
+            {
+                TryUpdatePlayerGridPosition(delta);
+            }
         }
     }
 
-    private void UpdatePlayerGridPosition(Vector2Int delta)
+    private bool TryUpdatePlayerGridPosition(Vector2Int delta)
     {
         // Test movement target and update position if valid
         
@@ -245,10 +240,10 @@ public class GameplayController : MonoBehaviour
             || targetPosition.y < 0
             || targetPosition.y > Constants.GRID_SIZE-1)
         {
-            return;
+            return false;
         }
         
-        if (!IsCellWalkableToPlayer(targetPosition)) return;
+        if (!IsCellWalkableToPlayer(targetPosition)) return false;
         
         playerGridPosition += delta;
         
@@ -260,8 +255,13 @@ public class GameplayController : MonoBehaviour
             playerSafe = false;
             grid[playerGridPosition.x][playerGridPosition.y] = CellState.Marked;
             markedPath.Add(playerGridPosition);
+            
+            if (markedPath.Count > 2)
+            {
+                AdjacencyCheck();
+            }
         }
-        else if (targetState == CellState.Taken)
+        else if (targetState >= CellState.Edge)
         {
             playerSafe = true;
             
@@ -277,12 +277,33 @@ public class GameplayController : MonoBehaviour
         }
 
         gridChanged = true;
+        lastMovementVector = delta;
+        return true;
+    }
+
+    // Check if player's mark is touching a taken cell and fill immediately
+    // To avoid leaving random holes
+    private void AdjacencyCheck()
+    {
+        Vector2Int cellCoord;
+        
+        for (int i = 0; i < testDirections.Length; i++)
+        {
+            cellCoord = playerGridPosition + testDirections[i];
+            
+            if (grid[cellCoord.x][cellCoord.y] >= CellState.Edge)
+            {
+                HandlePlayerFinishedMark();
+                ReturnPlayerToEdge();
+                return;
+            }
+        }
     }
 
     private void HandlePlayerFinishedMark()
     {
         // Determine if any cells need to be filled
-        bool fillSuccess = false;
+        bool fillSuccess;
         List<HashSet<Vector2Int>> areasToFill = DetermineFillAreas(out fillSuccess);
         
         DeleteMarkedPath(fillSuccess);
@@ -314,7 +335,7 @@ public class GameplayController : MonoBehaviour
         {
             Vector2Int markedCell = markedPath[i];
             markedPath.RemoveAt(i);
-            grid[markedCell.x][markedCell.y] = fill ? CellState.Taken : CellState.Free;
+            grid[markedCell.x][markedCell.y] = fill ? CellState.Edge : CellState.Free;
             
             if (fill)
             {
@@ -340,6 +361,7 @@ public class GameplayController : MonoBehaviour
         int closestDist = Constants.GRID_SIZE;
         int currentDist = 0;
         Vector2Int closestEdge = playerInitialPosition;
+        Vector2Int current;
         
         //Right
         currentDist = 0;
@@ -347,7 +369,10 @@ public class GameplayController : MonoBehaviour
         {
             currentDist++;
             if (currentDist > closestDist) break;
-            if (grid[x][playerGridPosition.y] == CellState.Taken)
+            current = new Vector2Int(x, playerGridPosition.y);
+            
+            if (grid[current.x][current.y] >= CellState.Edge
+                && IsCellWalkableToPlayer(current))
             {
                 closestDist = x - playerGridPosition.x;
                 closestEdge = new Vector2Int(x, playerGridPosition.y);
@@ -361,7 +386,10 @@ public class GameplayController : MonoBehaviour
         {
             currentDist++;
             if (currentDist > closestDist) break;
-            if (grid[x][playerGridPosition.y] == CellState.Taken)
+            current = new Vector2Int(x, playerGridPosition.y);
+            
+            if (grid[current.x][current.y] >= CellState.Edge
+                && IsCellWalkableToPlayer(current))
             {
                 if (playerGridPosition.x - x < closestDist)
                 {
@@ -377,7 +405,10 @@ public class GameplayController : MonoBehaviour
         {
             currentDist++;
             if (currentDist > closestDist) break;
-            if (grid[playerGridPosition.x][y] == CellState.Taken)
+            current = new Vector2Int(playerGridPosition.x, y);
+            
+            if (grid[current.x][current.y] >= CellState.Edge
+                && IsCellWalkableToPlayer(current))
             {
                 if (y - playerGridPosition.y < closestDist)
                 {
@@ -395,7 +426,10 @@ public class GameplayController : MonoBehaviour
         {
             currentDist++;
             if (currentDist > closestDist) break;
-            if (grid[playerGridPosition.x][y] == CellState.Taken)
+            current = new Vector2Int(playerGridPosition.x, y);
+            
+            if (grid[current.x][current.y] >= CellState.Edge
+                && IsCellWalkableToPlayer(current))
             {
                 if (playerGridPosition.y - y < closestDist)
                 {
@@ -443,25 +477,13 @@ public class GameplayController : MonoBehaviour
                 
                 bossGridPosition = targetCell;
             }
-            else if (targetState == CellState.Taken)
-            {
-                if (targetCell.x == 0)
-                {
-                    targetCell = new Vector2Int(Constants.GRID_SIZE - 2, bossGridPosition.y);
-                    targetState = grid[targetCell.x][targetCell.y];
-                    if (targetState == CellState.Free)
-                    {
-                        bossGridPosition = targetCell;
-                    }
-                }
-            }
         }
         
         // Move Small Enemies
         for (int i = 0; i < enemyPositions.Count; i++)
         {
             // Move to Player
-            if (fillPercent > (playerSafe ? Random.Range(7.0f, 10.0f)*0.1 : (Random.Range(0.0f, 10.0f)-markedPath.Count*0.4)*0.1))
+            if (fillPercent > (playerSafe ? Random.Range(4.0f, 10.0f)*0.1 : (Random.Range(0.0f, 10.0f)-markedPath.Count*0.4)*0.1))
             {
                 int xDist = Mathf.Abs(enemyPositions[i].x - playerGridPosition.x);
                 int yDist = Mathf.Abs(enemyPositions[i].y - playerGridPosition.y);
@@ -527,9 +549,10 @@ public class GameplayController : MonoBehaviour
     private bool IsCellWalkableToPlayer(Vector2Int cellCoord)
     {
         CellState cellState = grid[cellCoord.x][cellCoord.y];
-        if (cellState == CellState.Free && actionButtonHeld) return true;
+        if (cellState == CellState.Edge) return true;
         if (cellState == CellState.Marked) return false;
-
+        if (cellState == CellState.Free && actionButtonHeld) return true;
+        
         if (cellState == CellState.Taken)
         {
             if (cellCoord.x >= 0 && cellCoord.y >= 0 && cellCoord.x < Constants.GRID_SIZE && cellCoord.y < Constants.GRID_SIZE)
@@ -566,8 +589,6 @@ public class GameplayController : MonoBehaviour
 
         bool SideOfMarkedNodeIsRedundant(Vector2Int startNode)
         {
-            bool alreadyChecked = false;
-            
             for (int j = 0; j < potentialFillAreas.Count; j++)
             {
                 if (potentialFillAreas[j].Contains(startNode))
@@ -626,8 +647,8 @@ public class GameplayController : MonoBehaviour
         foreach (HashSet<Vector2Int> fillArea in potentialFillAreas)
         {
             int score = ScoreFillArea(fillArea);
-            //temporary hack to only fill the smaller area, since no enemies yet
-            if (score > 0 && score < lowestScore)
+            
+            if (score > 16 && score < lowestScore)
             {
                 fillSuccess = true;
                 validFillAreas.Clear();

@@ -13,5 +13,6 @@ public enum CellState
     Free = 12,
     Enemy = 37,
     Marked = 62,
-    Taken = 87
+    Edge = 87,
+    Taken = 100
 }
