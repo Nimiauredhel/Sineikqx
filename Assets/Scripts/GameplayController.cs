@@ -1,8 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public class GameplayController : MonoBehaviour
@@ -29,6 +29,10 @@ public class GameplayController : MonoBehaviour
     private Vector2 currentInputVector = Vector2.zero;
     private Vector2 scheduledInputVector = Vector2.zero;
 
+    private bool started = false;
+    private bool paused = false;
+    private bool playerFreeze = false;
+    private bool gameOver = false;
     private bool gridChanged = false;
     private bool playerSafe = true;
     private bool actionButtonHeld = false;
@@ -76,7 +80,7 @@ public class GameplayController : MonoBehaviour
         bossVisualPosition = (Vector2)bossInitialPosition;
         renderController.UpdatePlayerPosition(playerVisualPosition);
         renderController.UpdateBossPosition(bossVisualPosition);
-        UpdateRenderGrid();
+        StartCoroutine(IntroRoutine());
     }
 
     private void FixedUpdate()
@@ -86,14 +90,19 @@ public class GameplayController : MonoBehaviour
 
     private void Update()
     {
-        if (playerTickCounter < playerTickLength)
+        if (!started || paused) return;
+
+        if (!playerFreeze)
         {
-            playerTickCounter += Time.deltaTime;
-        }
-        else
-        {
-            playerTickCounter = 0.0f;
-            ExecuteInput();
+            if (playerTickCounter < playerTickLength)
+            {
+                playerTickCounter += Time.deltaTime;
+            }
+            else
+            {
+                playerTickCounter = 0.0f;
+                ExecuteInput();
+            }
         }
         
         if (enemyTickCounter < enemyTickLength)
@@ -118,6 +127,8 @@ public class GameplayController : MonoBehaviour
             renderController.UpdateBossPosition(bossVisualPosition);
         }
 
+        if (gameOver) return;
+        
         if (Math.Abs(visualFillPercent - fillPercent) > 0.005f)
         {
             visualFillPercent = Mathf.Lerp(visualFillPercent, fillPercent, gridVisualLerpSpeed * Time.deltaTime);
@@ -129,7 +140,7 @@ public class GameplayController : MonoBehaviour
             visualMarkStrength = Mathf.Lerp(visualMarkStrength, markStrength, gridVisualLerpSpeed * Time.deltaTime);
             renderController.UpdateMarkStrength(visualMarkStrength);
         }
-
+        
         if (gridTickCounter < gridTickLength)
         {
             gridTickCounter += Time.deltaTime;
@@ -145,19 +156,30 @@ public class GameplayController : MonoBehaviour
             }
         }
     }
-    
+
+    private IEnumerator IntroRoutine()
+    {
+        renderController.UpdatePlayerPosition(playerVisualPosition);
+        renderController.UpdateBossPosition(bossVisualPosition);
+        
+        yield return StartCoroutine(renderController.UpdateGridFancy(grid));
+        paused = false;
+        playerFreeze = false;
+        started = true;
+    }
+
     private void InitializeGrid()
     {
         filled = 0;
-        grid = new CellState[Constants.GRID_SIZE][];
+        grid = new CellState[Global.GRID_SIZE][];
 
-        for (int x = 0; x < Constants.GRID_SIZE; x++)
+        for (int x = 0; x < Global.GRID_SIZE; x++)
         {
-            grid[x] = new CellState[Constants.GRID_SIZE];
+            grid[x] = new CellState[Global.GRID_SIZE];
             
-            for (int y = 0; y < Constants.GRID_SIZE; y++)
+            for (int y = 0; y < Global.GRID_SIZE; y++)
             {
-                if (x == 0 || y == 0 || x == Constants.GRID_SIZE-1 || y == Constants.GRID_SIZE-1)
+                if (x == 0 || y == 0 || x == Global.GRID_SIZE-1 || y == Global.GRID_SIZE-1)
                 {
                     grid[x][y] = CellState.Taken;
                     filled++;
@@ -180,7 +202,7 @@ public class GameplayController : MonoBehaviour
             do
             {
                 newPos =
-                    new Vector2Int(Random.Range(1, Constants.GRID_SIZE), Random.Range(1, Constants.GRID_SIZE));
+                    new Vector2Int(Random.Range(1, Global.GRID_SIZE), Random.Range(1, Global.GRID_SIZE));
             } while (enemyPositions.Contains(newPos));
 
             grid[newPos.x][newPos.y] = CellState.Enemy;
@@ -248,9 +270,9 @@ public class GameplayController : MonoBehaviour
         Vector2Int targetPosition = playerGridPosition + delta;
         
         if (targetPosition.x < 0 
-            || targetPosition.x > Constants.GRID_SIZE-1
+            || targetPosition.x > Global.GRID_SIZE-1
             || targetPosition.y < 0
-            || targetPosition.y > Constants.GRID_SIZE-1)
+            || targetPosition.y > Global.GRID_SIZE-1)
         {
             return false;
         }
@@ -308,8 +330,8 @@ public class GameplayController : MonoBehaviour
         for (int i = 0; i < testDirections.Length; i++)
         {
             current = playerGridPosition + testDirections[i];
-            if (current.x < 0 || current.x >= Constants.GRID_SIZE
-                              || current.y < 0 || current.y >= Constants.GRID_SIZE)
+            if (current.x < 0 || current.x >= Global.GRID_SIZE
+                              || current.y < 0 || current.y >= Global.GRID_SIZE)
                 continue;
             
             if (grid[current.x][current.y] >= CellState.Edge)
@@ -347,6 +369,11 @@ public class GameplayController : MonoBehaviour
         }
         
         UpdateFillPercent();
+
+        if (fillPercent > 0.75f)
+        {
+            StartCoroutine(GameOver(true));
+        }
     }
 
     private void DeleteMarkedPath(bool fill)
@@ -375,20 +402,41 @@ public class GameplayController : MonoBehaviour
 
         if (lives <= 0)
         {
-            SceneManager.LoadScene(0);
+            StartCoroutine(GameOver(false));
         }
     }
 
+    private IEnumerator GameOver(bool win)
+    {
+        if (gameOver) yield break;
+        gameOver = true;
+        
+        paused = true;
+        playerFreeze = true;
+        yield return new WaitForSeconds(0.25f);
+        paused = false;
+
+        yield return StartCoroutine(renderController.DissolveToColor(win ? Color.red : Color.clear));
+        
+        playerGridPosition = playerInitialPosition;
+        bossGridPosition = bossInitialPosition;
+
+        yield return new WaitForSeconds(1.0f);
+        
+        SceneManager.LoadScene(0);
+    }
+
+
     private void ReturnPlayerToEdge()
     {
-        int closestDist = Constants.GRID_SIZE;
+        int closestDist = Global.GRID_SIZE;
         int currentDist = 0;
         Vector2Int closestEdge = playerInitialPosition;
         Vector2Int current;
         
         //Right
         currentDist = 0;
-        for (int x = playerGridPosition.x + 1; x < Constants.GRID_SIZE; x++)
+        for (int x = playerGridPosition.x + 1; x < Global.GRID_SIZE; x++)
         {
             currentDist++;
             if (currentDist > closestDist) break;
@@ -424,7 +472,7 @@ public class GameplayController : MonoBehaviour
         
         //Up
         currentDist = 0;
-        for (int y = playerGridPosition.y + 1; y < Constants.GRID_SIZE; y++)
+        for (int y = playerGridPosition.y + 1; y < Global.GRID_SIZE; y++)
         {
             currentDist++;
             if (currentDist > closestDist) break;
@@ -472,8 +520,8 @@ public class GameplayController : MonoBehaviour
         for (int i = 0; i < testDirections.Length; i++)
         {
             current = playerGridPosition + testDirections[i];
-            if (current.x < 0 || current.x >= Constants.GRID_SIZE
-                || current.y < 0 || current.y >= Constants.GRID_SIZE)
+            if (current.x < 0 || current.x >= Global.GRID_SIZE
+                || current.y < 0 || current.y >= Global.GRID_SIZE)
                 continue;
             
             if (grid[current.x][current.y] >= CellState.Edge
@@ -541,8 +589,8 @@ public class GameplayController : MonoBehaviour
             
             targetCell = enemyPositions[i] + delta;
             
-            if (targetCell.x < 0 || targetCell.x >= Constants.GRID_SIZE
-                || targetCell.y < 0 || targetCell.y >= Constants.GRID_SIZE)
+            if (targetCell.x < 0 || targetCell.x >= Global.GRID_SIZE
+                || targetCell.y < 0 || targetCell.y >= Global.GRID_SIZE)
                 continue;
             
             targetState = grid[targetCell.x][targetCell.y];
@@ -566,7 +614,7 @@ public class GameplayController : MonoBehaviour
 
     private void UpdateFillPercent()
     {
-        fillPercent = filled / (float)(Constants.GRID_SIZE*Constants.GRID_SIZE)*0.75f;
+        fillPercent = filled / ((float)(Global.GRID_SIZE*Global.GRID_SIZE)*0.75f);
     }
 
     private void UpdateMarkStrength()
@@ -594,7 +642,7 @@ public class GameplayController : MonoBehaviour
         
         if (cellState == CellState.Taken)
         {
-            if (cellCoord.x >= 0 && cellCoord.y >= 0 && cellCoord.x < Constants.GRID_SIZE && cellCoord.y < Constants.GRID_SIZE)
+            if (cellCoord.x >= 0 && cellCoord.y >= 0 && cellCoord.x < Global.GRID_SIZE && cellCoord.y < Global.GRID_SIZE)
             {
                 Vector2Int testDir;
                 
@@ -602,8 +650,8 @@ public class GameplayController : MonoBehaviour
                 {
                     testDir = cellCoord + testDirections[i];
 
-                    if (testDir.x >= 0 && testDir.x < Constants.GRID_SIZE
-                                       && testDir.y >= 0 && testDir.y < Constants.GRID_SIZE)
+                    if (testDir.x >= 0 && testDir.x < Global.GRID_SIZE
+                                       && testDir.y >= 0 && testDir.y < Global.GRID_SIZE)
                     {
                         if (grid[testDir.x][testDir.y] == CellState.Free)
                         {
@@ -712,8 +760,8 @@ public class GameplayController : MonoBehaviour
         {
             Vector2Int node = nodes.Pop();
             
-            if (node. x < 0 || node.x >= Constants.GRID_SIZE
-                || node. y < 0 || node.y >= Constants.GRID_SIZE) continue;
+            if (node. x < 0 || node.x >= Global.GRID_SIZE
+                || node. y < 0 || node.y >= Global.GRID_SIZE) continue;
             
             CellState state = grid[node.x][node.y];
             
