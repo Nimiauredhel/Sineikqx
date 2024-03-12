@@ -14,6 +14,7 @@ Shader "WeirdQix/GameRender"
         
         _MarkStrength("Mark Strength", Range(0.0, 1.0)) = 1.0
         _FillPercent("Fill Percent", Range(0.0, 1.0)) = 0.5
+        _PlayerHealth("Player Health", Range(0.0, 1.0)) = 1.0
         
         _PlayerPosition ("Player Position", Vector) = (0.5, 0.5, 1, 1)
         _BossPosition ("Boss Position", Vector) = (0.75, 0.75, 1, 1)
@@ -58,6 +59,7 @@ Shader "WeirdQix/GameRender"
 
             float _MarkStrength;
             float _FillPercent;
+            float _PlayerHealth;
             
             float4 _BorderColor;
             float _BorderThickness;
@@ -180,6 +182,7 @@ Shader "WeirdQix/GameRender"
             {
                 const float4 white = float4(1.0, 1.0, 1.0, 1.0);
                 const float4 black = float4(0.0,0.0,0.0, 1.0);
+                const float4 red = float4(1.0, 0.0, 0.0, 1.0);
                 
                 float4 col;
                 float2 coord = i.uv;
@@ -236,16 +239,19 @@ Shader "WeirdQix/GameRender"
                 col = lerp(col, _BorderColor, _BorderColor.a * (waveEffect + 1.0 - smoothstep(distFromGrid.y, 0.0, _BorderThickness)));
 
 
-                // Draw Bounds & fill indicator & this is really convoluted eh
+                // Draw Bounds & fill indicator & this is really convoluted eh & health indicator
                 float boundCoordNoise = 0.02*noise(coord*50.0+_Time.w*2.3)*noise(coord*12.3+_SinTime.z*5.2);
                 float boundRange = 0.075 * _FillPercent;
                 float2 boundCoord = valueCoord + lerp(-boundRange, boundRange, 0.4+boundCoordNoise*25.0);
                 float2 floorBoundCoord = floor(boundCoord+1.0);
                 float fillCoord = min(frac(boundCoord.x - floorBoundCoord.x*0.01), frac(boundCoord.y - floorBoundCoord.y*0.01));
-                float fillIndex = 1.0 - smoothstep(_FillPercent, _FillPercent, min(fillCoord, 1.0 - fillCoord) * 2.0);
-                float boundThickness = lerp(0.0025, 0.007*_FillPercent, fillIndex);
+                float fillIndex = 1.0 - smoothstep(_FillPercent, _FillPercent*1.1, min(fillCoord, 1.0 - fillCoord) * 2.0);
+                float healthValue = 1.0 - _PlayerHealth;
+                float healthIndex = 1.0 - smoothstep(healthValue, healthValue*1.1, min(fillCoord, 1.0 - fillCoord) * 2.0);
+                float boundThickness = lerp(0.003, max(0.003, 0.003*_FillPercent), fillIndex);
                 float halfThickness = boundThickness * 0.5;
-                _BorderColor = lerp(float4(0.22, 0.22, 0.0, 1.0), float4(1.0, 1.0, boundCoordNoise+0.5*_FillPercent*length(distFromGrid)*aberration, 1.0), fillIndex);
+                _BorderColor = lerp(float4(0.22, 0.22, 0.0, 1.0), float4(2.0, 2.0, boundCoordNoise+0.5*_FillPercent*length(distFromGrid)*aberration, 1.0), fillIndex);
+                _BorderColor = lerp(_BorderColor, red, healthIndex);
                 _BorderColor.a *= (step(boundCoord.x-halfThickness, 0.0) * step(0.0, boundCoord.x+halfThickness)) + (step(boundCoord.x-halfThickness, 1.0) * step(1.0, boundCoord.x+halfThickness))
                 + (step(boundCoord.y-halfThickness, 0.0) * step(0.0, boundCoord.y+halfThickness)) + (step(boundCoord.y-halfThickness, 1.0) * step(1.0, boundCoord.y+halfThickness));
                 col = lerp(col, _BorderColor, _BorderColor.a * (1.0 - smoothstep(distFromGrid.x, 0.0, _BorderThickness)));

@@ -42,6 +42,11 @@ public class GameRenderController : MonoBehaviour
     {
         gameplayImage.material.SetFloat("_MarkStrength", newMarkStrength);
     }
+    
+    public void UpdatePlayerHealth(float newPlayerHealth)
+    {
+        gameplayImage.material.SetFloat("_PlayerHealth", newPlayerHealth);
+    }
 
     public void UpdateGrid(CellState[][] newGrid)
     {

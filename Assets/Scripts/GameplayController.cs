@@ -36,10 +36,11 @@ public class GameplayController : MonoBehaviour
     private bool gridChanged = false;
     private bool playerSafe = true;
     private bool actionButtonHeld = false;
-    private int lives = 3;
     private int filled = 0;
     private float fillPercent = 0.0f;
     private float visualFillPercent = 0.0f;
+    private float playerHealth = 1.0f;
+    private float visualPlayerHealth = 1.0f;
     private float markStrength = 1.0f;
     private float visualMarkStrength = 1.0f;
     private float playerTickCounter = 0.0f;
@@ -118,6 +119,12 @@ public class GameplayController : MonoBehaviour
             bossVisualPosition = Vector2.Lerp(bossVisualPosition, bossGridPosition, bossVisualPosLerpSpeed * Time.deltaTime);
             renderController.UpdateBossPosition(bossVisualPosition);
         }
+        
+        if (Math.Abs(visualPlayerHealth - playerHealth) > 0.005f)
+        {
+            visualPlayerHealth = Mathf.Lerp(visualPlayerHealth, playerHealth, gridVisualLerpSpeed * Time.deltaTime);
+            renderController.UpdatePlayerHealth(visualPlayerHealth);
+        }
 
         if (gameOver) return;
         
@@ -155,6 +162,7 @@ public class GameplayController : MonoBehaviour
         paused = false;
         playerFreeze = false;
         gameOver = false;
+        playerHealth = 1.0f;
         
         InitializeGrid();
         renderController.Initialize();
@@ -173,8 +181,6 @@ public class GameplayController : MonoBehaviour
         renderController.UpdateBossPosition(bossVisualPosition);
         
         yield return StartCoroutine(renderController.UpdateGridFancy(grid));
-        paused = false;
-        playerFreeze = false;
         started = true;
     }
 
@@ -432,10 +438,10 @@ public class GameplayController : MonoBehaviour
     private void HandlePlayerHit()
     {
         ReturnPlayerToEdge();
-        lives--;
+        playerHealth -= 0.25f;
         DeleteMarkedPath(false);
 
-        if (lives <= 0)
+        if (playerHealth <= 0.0f)
         {
             StartCoroutine(GameOver(false));
         }
@@ -448,7 +454,7 @@ public class GameplayController : MonoBehaviour
         
         paused = true;
         playerFreeze = true;
-        yield return new WaitForSeconds(0.25f);
+        yield return new WaitForSeconds(0.5f);
         paused = false;
 
         yield return StartCoroutine(renderController.DissolveToColor(win ? Color.red : Color.clear));
