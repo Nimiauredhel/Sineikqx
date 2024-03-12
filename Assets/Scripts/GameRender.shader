@@ -41,9 +41,6 @@ Shader "WeirdQix/GameRender"
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
             };
-
-            float4 _White = float4(1.0, 1.0, 1.0, 1.0);
-            float4 _Black = float4(0.0,0.0,0.0, 1.0);
             
             float4 _SunDirection;
             float _SunIntensity;
@@ -181,6 +178,9 @@ Shader "WeirdQix/GameRender"
 
             fixed4 frag (v2f i) : SV_Target
             {
+                const float4 white = float4(1.0, 1.0, 1.0, 1.0);
+                const float4 black = float4(0.0,0.0,0.0, 1.0);
+                
                 float4 col;
                 float2 coord = i.uv;
                 float coordFrac = frac(coord);
@@ -214,7 +214,7 @@ Shader "WeirdQix/GameRender"
                 bossAmount *= step(cellValue, 0.75);
                 _BossColor = lerp(_BossColor*0.75, _BossColor * 1.5, 1.0 - smoothstep(1.0, 0.05, distFromBoss+bossDistNoise*5.0));
                 col = lerp(col, _BossColor, bossAmount);
-                col = lerp(col, _Black, bossDarkness);
+                col = lerp(col, black, bossDarkness);
                 //col = lerp(col, _BossColor*0.8, smoothstep(0.01, 0.0, pow(distFromBoss, 3)));
                 //col = lerp(col, _BossColor*1.1, step(distFromBoss, _BossPosition.w));
                 
@@ -259,7 +259,7 @@ Shader "WeirdQix/GameRender"
                 lightDistanceFromPlayer += wave.y * 0.0075;
                 col = lerp(col, _PlayerColor, max(0.0, _PlayerPosition.z)/lightDistanceFromPlayer);
                 col = lerp(col, _PlayerColor, step(combinedDistFromPlayer, _PlayerPosition.w));
-                col = lerp(col, float4(0,0,0,0), combinedDistFromPlayer*0.4);
+                col = lerp(col, black, combinedDistFromPlayer*0.4);
 
                 // Draw Noise Clouds
                 //float blurDistance = abs(wave.y) * 0.05;
@@ -268,13 +268,9 @@ Shader "WeirdQix/GameRender"
                 float2 cloudCoord = float2(coord.x + _Time.y * 0.05, coord.y + _Time.y * 0.1) * 10.0;
                 float2 opposingCloudCoord = float2(coord.x - (_SinTime.y * 0.3), coord.y - 0.84 - _CosTime.y * 0.15) * 5.0;
                 float cloudAmount = lerp (noise(cloudCoord), noise(opposingCloudCoord), 0.5);
-                //cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x+blurDistance, cloudCoord.y)), blurAmount);
-                //cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x, cloudCoord.y+blurDistance)), blurAmount);
-                //cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x-blurDistance, cloudCoord.y)), blurAmount);
-                //cloudAmount = lerp(cloudAmount, noise(float2(cloudCoord.x, cloudCoord.y-blurDistance)), blurAmount);
                 cloudAmount *= step(0.5, cellValue);
                 cloudAmount -= wave.y * wave.x * 0.12;
-                float4 cloudCol = lerp(float4(1.0,1.0,1.0,1.0), float4(0.0, 1.0 - distFromBoss, 0.0, 1.0), step(distFromBoss*5.0-cloudAmount, 0.01));
+                float4 cloudCol = lerp(white, black, step(cloudAmount, 0.01));
                 col = lerp(col + (wave.y * 2.0 - 1.0) * 0.005, cloudCol, cloudAmount*cloudModifier);
                 
                 return col;
