@@ -163,6 +163,46 @@ public class GameRenderController : MonoBehaviour
         }
     }
 
+    public IEnumerator UpdateFillIncremental(List<Vector2Int> newTaken, List<Vector2Int> newEdges)
+    {
+        newTaken.Shuffle();
+        newEdges.Shuffle();
+
+        int waitCounter = 0;
+        int threshold = Random.Range(1, 2);
+        Color cellColor = Color.red;
+        
+        foreach (Vector2Int coord in newTaken)
+        {
+            gameplayTexture.SetPixel(coord.x, coord.y, cellColor);
+            gameplayTexture.Apply();
+            waitCounter++;
+
+            if (waitCounter > threshold)
+            {
+                waitCounter = 0;
+                threshold = Random.Range(1, 2);
+                yield return null;
+            }
+        }
+
+        cellColor.a = 0.87f;
+        
+        foreach (Vector2Int coord in newEdges)
+        {
+            gameplayTexture.SetPixel(coord.x, coord.y, cellColor);
+            gameplayTexture.Apply();
+            waitCounter++;
+
+            if (waitCounter > threshold)
+            {
+                waitCounter = 0;
+                threshold = Random.Range(1, 2);
+                yield return null;
+            }
+        }
+    }
+
     private void SetTextureFromBase()
     {
         gameplayTexture = new Texture2D(gameplayTextureBase.width, gameplayTextureBase.height,gameplayTextureBase.format, 0, false);

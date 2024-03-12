@@ -358,7 +358,23 @@ public class GameplayController : MonoBehaviour
         // Determine if any cells need to be filled
         bool fillSuccess;
         List<HashSet<Vector2Int>> areasToFill = DetermineFillAreas(out fillSuccess);
-        
+
+        if (fillSuccess)
+        {
+            List<Vector2Int> newEdges = new List<Vector2Int>(markedPath);
+            List<Vector2Int> newTaken = new List<Vector2Int>();
+
+            foreach (HashSet<Vector2Int> fillArea in areasToFill)
+            {
+                foreach (Vector2Int cell in fillArea)
+                {
+                    newTaken.Add(cell);
+                }
+            }
+
+            StartCoroutine(RenderFillEvent(newTaken, newEdges));
+        }
+
         DeleteMarkedPath(fillSuccess);
         
         // Fill in cells that need to be filled
@@ -384,6 +400,15 @@ public class GameplayController : MonoBehaviour
         {
             StartCoroutine(GameOver(true));
         }
+    }
+
+    private IEnumerator RenderFillEvent(List<Vector2Int> newTaken, List<Vector2Int> newEdges)
+    {
+        paused = true;
+        yield return null;
+
+        yield return StartCoroutine(renderController.UpdateFillIncremental(newTaken, newEdges));
+        paused = false;
     }
 
     private void DeleteMarkedPath(bool fill)
