@@ -72,15 +72,7 @@ public class GameplayController : MonoBehaviour
 
     private void Start()
     {
-        InitializeGrid();
-        renderController.Initialize();
-        playerGridPosition = playerInitialPosition;
-        bossGridPosition = bossInitialPosition;
-        playerVisualPosition = (Vector2)playerInitialPosition;
-        bossVisualPosition = (Vector2)bossInitialPosition;
-        renderController.UpdatePlayerPosition(playerVisualPosition);
-        renderController.UpdateBossPosition(bossVisualPosition);
-        StartCoroutine(IntroRoutine());
+        SetupGame();
     }
 
     private void FixedUpdate()
@@ -155,6 +147,24 @@ public class GameplayController : MonoBehaviour
                 gridChanged = false;
             }
         }
+    }
+
+    private void SetupGame()
+    {
+        started = false;
+        paused = false;
+        playerFreeze = false;
+        gameOver = false;
+        
+        InitializeGrid();
+        renderController.Initialize();
+        playerGridPosition = playerInitialPosition;
+        bossGridPosition = bossInitialPosition;
+        playerVisualPosition = (Vector2)playerInitialPosition;
+        bossVisualPosition = (Vector2)bossInitialPosition;
+        renderController.UpdatePlayerPosition(playerVisualPosition);
+        renderController.UpdateBossPosition(bossVisualPosition);
+        StartCoroutine(IntroRoutine());
     }
 
     private IEnumerator IntroRoutine()
@@ -421,9 +431,28 @@ public class GameplayController : MonoBehaviour
         playerGridPosition = playerInitialPosition;
         bossGridPosition = bossInitialPosition;
 
-        yield return new WaitForSeconds(1.0f);
-        
-        SceneManager.LoadScene(0);
+        yield return new WaitForSeconds(0.5f);
+
+        if (win)
+        {
+            initialEnemyCount++;
+            
+            if (initialEnemyCount > 32)
+            {
+                initialEnemyCount = 32;
+            }
+        }
+        else
+        {
+            initialEnemyCount--;
+            
+            if (initialEnemyCount < 0)
+            {
+                initialEnemyCount = 0;
+            }
+        }
+
+        SetupGame();
     }
 
 

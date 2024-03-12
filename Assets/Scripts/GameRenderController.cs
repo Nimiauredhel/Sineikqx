@@ -108,7 +108,7 @@ public class GameRenderController : MonoBehaviour
         yield return null;
         
         int waitCounter = 0;
-        int threshold = Random.Range(6, 10);
+        int threshold = Random.Range(7, 10);
         
         foreach (Vector3Int coord in pixelCoords)
         {
@@ -119,7 +119,7 @@ public class GameRenderController : MonoBehaviour
             if (waitCounter > threshold)
             {
                 waitCounter = 0;
-                threshold = Random.Range(6, 10);
+                threshold = Random.Range(7, 10);
                 yield return null;
             }
         }
@@ -146,7 +146,7 @@ public class GameRenderController : MonoBehaviour
         yield return null;
         
         int waitCounter = 0;
-        int threshold = Random.Range(6, 10);
+        int threshold = Random.Range(7, 10);
         
         foreach (Vector3Int coord in pixelCoords)
         {
@@ -157,7 +157,7 @@ public class GameRenderController : MonoBehaviour
             if (waitCounter > threshold)
             {
                 waitCounter = 0;
-                threshold = Random.Range(6, 10);
+                threshold = Random.Range(7, 10);
                 yield return null;
             }
         }
