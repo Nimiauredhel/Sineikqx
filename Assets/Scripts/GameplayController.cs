@@ -7,7 +7,6 @@ using Random = UnityEngine.Random;
 
 public class GameplayController : MonoBehaviour
 {
-    [FormerlySerializedAs("oneDimensionalMovement")] [SerializeField] private bool noDiagonals;
     [SerializeField] private int initialEnemyCount = 3;
     [SerializeField] private float playerTickLength = 0.064f;
     [SerializeField] private float enemyTickLength = 0.5f;
@@ -224,7 +223,10 @@ public class GameplayController : MonoBehaviour
             }
             else
             {
-                TryUpdatePlayerGridPosition(delta);
+                if (!TryUpdatePlayerGridPosition(delta) && IsPlayerStuck())
+                {
+                    ReturnPlayerToEdge();
+                }
             }
         }
     }
@@ -285,13 +287,16 @@ public class GameplayController : MonoBehaviour
     // To avoid leaving random holes
     private void AdjacencyCheck()
     {
-        Vector2Int cellCoord;
+        Vector2Int current;
         
         for (int i = 0; i < testDirections.Length; i++)
         {
-            cellCoord = playerGridPosition + testDirections[i];
+            current = playerGridPosition + testDirections[i];
+            if (current.x < 0 || current.x >= Constants.GRID_SIZE
+                              || current.y < 0 || current.y >= Constants.GRID_SIZE)
+                continue;
             
-            if (grid[cellCoord.x][cellCoord.y] >= CellState.Edge)
+            if (grid[current.x][current.y] >= CellState.Edge)
             {
                 HandlePlayerFinishedMark();
                 ReturnPlayerToEdge();
@@ -442,14 +447,25 @@ public class GameplayController : MonoBehaviour
         playerGridPosition = closestEdge;
     }
 
-    private void CheckIfPlayerStuck()
+    private bool IsPlayerStuck()
     {
-        bool stuck = false;
-
+        Vector2Int current;
+        
         for (int i = 0; i < testDirections.Length; i++)
         {
+            current = playerGridPosition + testDirections[i];
+            if (current.x < 0 || current.x >= Constants.GRID_SIZE
+                || current.y < 0 || current.y >= Constants.GRID_SIZE)
+                continue;
             
+            if (grid[current.x][current.y] >= CellState.Edge
+                && IsCellWalkableToPlayer(current))
+            {
+                return false;
+            }
         }
+
+        return true;
     }
 
     private void MoveEnemies()
