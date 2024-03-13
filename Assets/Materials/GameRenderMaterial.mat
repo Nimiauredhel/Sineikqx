@@ -106,3 +106,4 @@ Material:
     - _SunDirection: {r: 20, g: 33.29, b: -2, a: 0.2}
     - _TakenCellColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
