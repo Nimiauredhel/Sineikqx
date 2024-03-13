@@ -18,6 +18,7 @@ public class GameplayController : MonoBehaviour
     [SerializeField] private Vector2Int playerInitialPosition;
     [SerializeField] private Vector2Int bossInitialPosition;
     [SerializeField] private GameRenderController renderController;
+    [SerializeField] private AudioController audioController;
     [SerializeField] private Image instructionImage;
     [SerializeField] private Sprite[] instructionSprites;
 
@@ -187,8 +188,12 @@ public class GameplayController : MonoBehaviour
         renderController.UpdatePlayerPosition(playerVisualPosition);
         renderController.UpdateBossPosition(bossVisualPosition);
         
+        audioController.PlayIntro();
+        yield return null;
         yield return StartCoroutine(renderController.UpdateGridFancy(grid));
+        yield return null;
         instructionImage.enabled = true;
+        audioController.StartGameplayMusic();
         started = true;
     }
 
@@ -281,6 +286,7 @@ public class GameplayController : MonoBehaviour
                 if (!TryUpdatePlayerGridPosition(delta) && IsPlayerStuck())
                 {
                     DeleteMarkedPath(false);
+                    audioController.SetSafe(true, false);
                     ReturnPlayerToEdge();
                 }
             }
@@ -310,6 +316,11 @@ public class GameplayController : MonoBehaviour
         
         if (targetState == CellState.Free)
         {
+            if (playerSafe)
+            {
+                audioController.SetSafe(false, true);
+            }
+
             playerSafe = false;
             grid[playerGridPosition.x][playerGridPosition.y] = CellState.Marked;
             markedPath.Add(playerGridPosition);
@@ -324,6 +335,7 @@ public class GameplayController : MonoBehaviour
             if (markedPath.Count >= maxMarkLength)
             {
                 DeleteMarkedPath(false);
+                audioController.SetSafe(true, false);
                 ReturnPlayerToEdge();
             }
             else if (markedPath.Count > 2)
@@ -373,6 +385,7 @@ public class GameplayController : MonoBehaviour
             
             if (grid[current.x][current.y] >= CellState.Edge)
             {
+                audioController.SetSafe(true, true);
                 StartCoroutine(HandlePlayerFinishedMark());
                 ReturnPlayerToEdge();
                 return;
@@ -466,6 +479,7 @@ public class GameplayController : MonoBehaviour
 
     private void HandlePlayerHit()
     {
+        audioController.SetSafe(true, false);
         ReturnPlayerToEdge();
         playerHealth -= 0.25f;
         DeleteMarkedPath(false);
@@ -483,8 +497,18 @@ public class GameplayController : MonoBehaviour
         
         paused = true;
         playerFreeze = true;
+        audioController.ReleaseGameplayMusic();
         yield return new WaitForSeconds(0.5f);
         paused = false;
+
+        if (win)
+        {
+            audioController.PlayWin();
+        }
+        else
+        {
+            audioController.PlayLose();
+        }
 
         yield return StartCoroutine(renderController.DissolveToColor(win ? Color.red : Color.clear));
         
@@ -514,7 +538,6 @@ public class GameplayController : MonoBehaviour
 
         SetupGame();
     }
-
 
     private void ReturnPlayerToEdge()
     {
@@ -704,6 +727,7 @@ public class GameplayController : MonoBehaviour
     private void UpdateFillPercent()
     {
         fillPercent = filled / ((float)(Global.GRID_SIZE*Global.GRID_SIZE)*0.75f);
+        audioController.SetFillPercent(fillPercent);
     }
 
     private void UpdateMarkStrength()

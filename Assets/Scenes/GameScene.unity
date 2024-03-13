@@ -232,6 +232,7 @@ GameObject:
   - component: {fileID: 162094924}
   - component: {fileID: 162094925}
   - component: {fileID: 162094923}
+  - component: {fileID: 162094926}
   m_Layer: 0
   m_Name: GameController
   m_TagString: Untagged
@@ -292,11 +293,52 @@ MonoBehaviour:
   playerInitialPosition: {x: 0, y: 63}
   bossInitialPosition: {x: 31, y: 31}
   renderController: {fileID: 162094923}
+  audioController: {fileID: 162094926}
   instructionImage: {fileID: 549868655}
   instructionSprites:
   - {fileID: 21300000, guid: 5a9e771248f5902449a8627e2ed7d641, type: 3}
   - {fileID: 21300000, guid: 352e51026c7ce2a49a594a67258d4c6e, type: 3}
   - {fileID: 21300000, guid: e46ac250a3fdbca4c9091a525ea90ca9, type: 3}
+--- !u!114 &162094926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 162094922}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c235f4aca5e63c144b56b656cc03b25a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  introEvent:
+    Guid:
+      Data1: -1516632849
+      Data2: 1200996967
+      Data3: 676020626
+      Data4: -996775187
+    Path: event:/Intro
+  winEvent:
+    Guid:
+      Data1: -1152037031
+      Data2: 1210025677
+      Data3: 812839836
+      Data4: -734344609
+    Path: event:/Win
+  loseEvent:
+    Guid:
+      Data1: 1215543743
+      Data2: 1132963751
+      Data3: 1411309974
+      Data4: 1472040586
+    Path: event:/Lose
+  gameplayEvent:
+    Guid:
+      Data1: -617202231
+      Data2: 1138570278
+      Data3: -1652158306
+      Data4: 298787421
+    Path: event:/Gameplay
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
