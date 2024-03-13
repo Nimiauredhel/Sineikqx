@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.02.00">
+	<object class="ParameterPreset" id="{0f3b70b8-67e5-495b-be4f-2bb6d47cadb6}">
+		<property name="name">
+			<value>FillPercent</value>
+		</property>
+		<relationship name="folder">
+			<destination>{7677c5d1-d39f-4189-b615-34ac913ed6c5}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{9be9fdd7-9c9a-4ad4-8a31-82d0e6cb23a0}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{9be9fdd7-9c9a-4ad4-8a31-82d0e6cb23a0}">
+		<property name="isGlobal">
+			<value>true</value>
+		</property>
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+		<property name="isExposedRecursively">
+			<value>false</value>
+		</property>
+	</object>
+</objects>
