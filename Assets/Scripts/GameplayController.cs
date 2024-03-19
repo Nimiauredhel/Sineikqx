@@ -195,7 +195,7 @@ public class GameplayController : MonoBehaviour
         
         audioController.PlayIntro();
         yield return null;
-        yield return StartCoroutine(renderController.UpdateGridFancy(grid));
+        yield return StartCoroutine(renderController.UpdateGridIncremental(grid));
         yield return null;
         instructionImage.enabled = true;
         audioController.StartGameplayMusic();
@@ -515,7 +515,7 @@ public class GameplayController : MonoBehaviour
             audioController.PlayLose();
         }
 
-        yield return StartCoroutine(renderController.DissolveToColor(win ? Color.red : Color.clear));
+        yield return StartCoroutine(renderController.SetWholeGridIncremental(win ? 1.0f : 0.0f));
         
         playerGridPosition = playerInitialPosition;
         bossGridPosition = bossInitialPosition;
@@ -731,8 +731,14 @@ public class GameplayController : MonoBehaviour
 
     private void UpdateFillPercent()
     {
-        fillPercent = filled / ((float)(Global.GRID_SIZE*Global.GRID_SIZE)*0.75f);
-        audioController.SetFillPercent(fillPercent);
+        fillPercent = filled / ((float)(Global.GRID_SIZE*Global.GRID_SIZE)*Global.COMPLETION_GOAL);
+
+        // For convenience since this is sometimes called on validation in the editor
+        if (Application.isPlaying)
+        {
+            audioController.SetFillPercent(fillPercent);
+        }
+        
     }
 
     private void UpdateMarkStrength()

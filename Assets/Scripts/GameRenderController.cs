@@ -8,10 +8,23 @@ public class GameRenderController : MonoBehaviour
 {
     [SerializeField] private bool cloneMaterial = true;
     [SerializeField] private RawImage gameplayImage;
-    [SerializeField] private Texture2D gameplayTextureBase;
+    [SerializeField] private RenderTexture gameplayTexture;
+    [SerializeField] private RenderTexture valueRamp;
+    [SerializeField] private Texture2D valueRampBase;
 
-    private Texture2D gameplayTexture;
     private float defVectorZ = 0.005f;
+
+    private struct CellInfo
+    {
+        public float value;
+        public Vector2Int coord;
+
+        public CellInfo(float value, Vector2Int coord)
+        {
+            this.value = value;
+            this.coord = coord;
+        }
+    }
 
     public void Initialize()
     {
@@ -20,7 +33,9 @@ public class GameRenderController : MonoBehaviour
             gameplayImage.material = new Material(gameplayImage.material);
         }
         
-        SetTextureFromBase();
+        InitializeTextures();
+
+        Application.targetFrameRate = 60;
     }
 
     public void UpdatePlayerPosition(Vector2 newPos)
@@ -52,183 +67,232 @@ public class GameRenderController : MonoBehaviour
     {
         if (gameplayTexture == null)
         {
-            SetTextureFromBase();
+            InitializeTextures();
         }
 
-        Color col = new Color();
-        Color[] newFloatGrid = new Color[Global.GRID_SIZE*Global.GRID_SIZE];
-
-        int index = 0;
+        int contiguousCount = 0;
+        float lastValue = -1.0f;
+        Vector2Int lastChangedCoord = Vector2Int.left;
         
         for (int x = 0; x < Global.GRID_SIZE; x++)
         {
             for (int y = 0; y < Global.GRID_SIZE; y++)
             {
-                CellState state = newGrid[y][x];
-                float value = (float)(int)state;
-                col.a = value * 0.01f;
-                newFloatGrid[index] = col;
+                CellState state = newGrid[x][y];
+                float value = (int)state * 0.01f;
 
-                index++;
+                if (y == 0 || value != lastValue)
+                {
+                    if (y != 0)
+                    {
+                        UpdateVerticalContiguous(lastChangedCoord.x, lastChangedCoord.y, contiguousCount, lastValue);
+                    }
+
+                    lastValue = value;
+                    lastChangedCoord = new Vector2Int(x, y);
+                    contiguousCount = 1;
+                }
+                else
+                {
+                    contiguousCount++;
+                }
             }
         }
-        
-        gameplayTexture.SetPixels(newFloatGrid);
-        gameplayTexture.Apply();
     }
 
-    public IEnumerator UpdateGridFancy(CellState[][] newGrid)
+    public IEnumerator UpdateGridIncremental(CellState[][] newGrid)
     {
         int cellAmount = Global.GRID_SIZE * Global.GRID_SIZE;
         
         if (gameplayTexture == null)
         {
-            SetTextureFromBase();
+            InitializeTextures();
         }
-        
-        List<Vector3Int> pixelCoords = new List<Vector3Int>(cellAmount);
-        
-        Color col = new Color();
-        Color[] newFloatGrid = new Color[cellAmount];
 
-        int index = 0;
+        List<CellInfo> cells = new List<CellInfo>(cellAmount);
         
         for (int x = 0; x < Global.GRID_SIZE; x++)
         {
             for (int y = 0; y < Global.GRID_SIZE; y++)
             {
                 CellState state = newGrid[y][x];
-                float value = (float)(int)state;
-                col.a = value * 0.01f;
-                newFloatGrid[index] = col;
-                
-                pixelCoords.Add(new Vector3Int(y, x, index));
-                
-                index++;
+                float value = (int)state * 0.01f;
+
+                cells.Add(new CellInfo(value, new Vector2Int(y, x)));
             }
         }
 
         yield return null;
-        pixelCoords.Shuffle();
+        cells.Shuffle();
         yield return null;
         
         int waitCounter = 0;
         int threshold = Random.Range(20, 25);
+        List<CellInfo> group = new List<CellInfo>(25);
         
-        foreach (Vector3Int coord in pixelCoords)
+        foreach (CellInfo cell in cells)
         {
-            gameplayTexture.SetPixel(coord.x, coord.y, newFloatGrid[coord.z]);
-            gameplayTexture.Apply();
+            group.Add(cell);
             waitCounter++;
 
-            if (waitCounter > threshold)
+            if (waitCounter >= threshold)
             {
+                UpdateCellList(group);
+                group.Clear();
                 waitCounter = 0;
                 threshold = Random.Range(20, 25);
                 yield return null;
             }
         }
+
+        if (group.Count > 0)
+        {
+            yield return null;
+            UpdateCellList(group);
+        }
+
+        yield return null;
     }
 
-    public IEnumerator DissolveToColor(Color targetColor)
+    public IEnumerator SetWholeGridIncremental(float value)
     {
         int cellAmount = Global.GRID_SIZE * Global.GRID_SIZE;
-        List<Vector3Int> pixelCoords = new List<Vector3Int>(cellAmount);
-
-        int index = 0;
+        List<CellInfo> cells = new List<CellInfo>(cellAmount);
         
         for (int x = 0; x < Global.GRID_SIZE; x++)
         {
             for (int y = 0; y < Global.GRID_SIZE; y++)
             {
-                pixelCoords.Add(new Vector3Int(y, x, index));
-                index++;
+                cells.Add(new CellInfo(value, new Vector2Int(y, x)));
             }
         }
 
         yield return null;
-        pixelCoords.Shuffle();
+        cells.Shuffle();
         yield return null;
         
         int waitCounter = 0;
         int threshold = Random.Range(20, 25);
+        List<CellInfo> group = new List<CellInfo>(25);
         
-        foreach (Vector3Int coord in pixelCoords)
+        foreach (CellInfo cell in cells)
         {
-            gameplayTexture.SetPixel(coord.x, coord.y, targetColor);
-            gameplayTexture.Apply();
+            group.Add(cell);
             waitCounter++;
 
-            if (waitCounter > threshold)
+            if (waitCounter >= threshold)
             {
+                UpdateCellList(group);
+                group.Clear();
                 waitCounter = 0;
                 threshold = Random.Range(20, 25);
                 yield return null;
             }
         }
+
+        if (group.Count > 0)
+        {
+            yield return null;
+            UpdateCellList(group);
+        }
+
+        yield return null;
     }
 
     public IEnumerator UpdateFillIncremental(List<Vector2Int> newTaken, List<Vector2Int> newEdges)
     {
-        Application.targetFrameRate = 30;
         newTaken.Shuffle();
 
         int waitCounter = 0;
         int threshold = Random.Range(12, 15);
-        Color cellColor = Color.red;
-        
+        float value = 1.0f;
+        List<CellInfo> cells = new List<CellInfo>(15);
+
         foreach (Vector2Int coord in newTaken)
         {
-            gameplayTexture.SetPixel(coord.x, coord.y, cellColor);
-            gameplayTexture.Apply();
+            cells.Add(new CellInfo(value, coord));
             waitCounter++;
 
-            if (waitCounter > threshold)
+            if (waitCounter >= threshold)
             {
+                UpdateCellList(cells);
+                cells.Clear();
+
                 waitCounter = 0;
                 threshold = Random.Range(12, 15);
+
                 yield return null;
             }
         }
 
-        cellColor.a = 0.87f;
-        Application.targetFrameRate = 15;
+        if (cells.Count > 0)
+        {
+            UpdateCellList(cells);
+            cells.Clear();
+        }
+
+        value = 0.87f;
         threshold = 8;
         yield return null;
         
         foreach (Vector2Int coord in newEdges)
         {
-            gameplayTexture.SetPixel(coord.x, coord.y, cellColor);
-            gameplayTexture.Apply();
+            cells.Add(new CellInfo(value, coord));
             waitCounter++;
 
-            if (waitCounter > threshold)
+            if (waitCounter >= threshold)
             {
+                UpdateCellList(cells);
+                cells.Clear();
+
                 waitCounter = 0;
                 yield return null;
             }
         }
-        
-        Application.targetFrameRate = 60;
+
+        if (cells.Count > 0)
+        {
+            UpdateCellList(cells);
+            cells.Clear();
+        }
     }
 
-    private void SetTextureFromBase()
+    private void InitializeTextures()
     {
-        gameplayTexture = new Texture2D(gameplayTextureBase.width, gameplayTextureBase.height,gameplayTextureBase.format, 0, false);
-        gameplayTexture.SetPixels(gameplayTextureBase.GetPixels());
-        gameplayTexture.filterMode = FilterMode.Point;
-        gameplayTexture.wrapMode = TextureWrapMode.Repeat;
-        gameplayTexture.Apply();
+        Graphics.Blit(valueRampBase, valueRamp);
+
+        SetWholeGrid(0.0f);
+
         gameplayImage.material.SetTexture("_GameStateMap", gameplayTexture);
     }
 
-    private void ChangeRandomPixel()
+    private void SetWholeGrid(float value)
     {
-        //gameplayTexture.
+        for (int x = 0; x < gameplayTexture.width; x++)
+        {
+            UpdateVerticalContiguous(x, 0, Global.GRID_SIZE, value);
+        }
+    }
+
+    private void UpdateVerticalContiguous(int x, int y, int height, float value)
+    {
+        Graphics.CopyTexture(valueRamp, 0, 0, (int)((Global.GRID_SIZE - 1) * value), 0, 1, height,
+                gameplayTexture, 0, 0, x, y);
+    }
+
+    private void UpdateCellList(List<CellInfo> cells)
+    {
+        if (cells == null || cells.Count == 0) return;
+
+        foreach (CellInfo cell in cells)
+        {
+            Graphics.CopyTexture(valueRamp, 0, 0, (int)((valueRamp.width - 1) * cell.value), 0, 1, 1,
+                gameplayTexture, 0, 0, cell.coord.x, cell.coord.y);
+        }
     }
 
     public void OnValidate()
     {
-        SetTextureFromBase();
+        InitializeTextures();
     }
 }

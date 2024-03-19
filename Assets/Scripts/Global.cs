@@ -1,11 +1,10 @@
-
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public static class Global
 {
     public const int GRID_SIZE = 64;
+    public const float COMPLETION_GOAL = 0.8f;
     
     private static System.Random Random = new System.Random();  
 

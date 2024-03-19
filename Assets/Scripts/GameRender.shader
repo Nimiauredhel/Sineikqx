@@ -45,7 +45,7 @@ Shader "WeirdQix/GameRender"
             
             float4 _SunDirection;
             float _SunIntensity;
-            
+
             sampler2D _GameStateMap;
             float4 _GameStateMap_ST;
             sampler2D _CellColorRamp;
@@ -159,19 +159,19 @@ Shader "WeirdQix/GameRender"
                 float difference;
 
                 //right
-                tempValue = tex2D(_GameStateMap, float2(coord.x+testDist, coord.y)).a;
+                tempValue = tex2D(_GameStateMap, float2(coord.x+testDist, coord.y)).r;
                 difference = abs(cellValue-tempValue);
                 nValue = max(nValue, difference);
                 //up
-                tempValue = tex2D(_GameStateMap, float2(coord.x, coord.y+testDist)).a;
+                tempValue = tex2D(_GameStateMap, float2(coord.x, coord.y+testDist)).r;
                 difference = abs(cellValue-tempValue);
                 nValue = max(nValue, difference);
                 //left
-                tempValue = tex2D(_GameStateMap, float2(coord.x-testDist, coord.y)).a;
+                tempValue = tex2D(_GameStateMap, float2(coord.x-testDist, coord.y)).r;
                 difference = abs(cellValue-tempValue);
                 nValue = max(nValue, difference);
                 //down
-                tempValue = tex2D(_GameStateMap, float2(coord.x, coord.y-testDist)).a;
+                tempValue = tex2D(_GameStateMap, float2(coord.x, coord.y-testDist)).r;
                 difference = abs(cellValue-tempValue);
                 nValue = max(nValue, difference);
 
@@ -197,7 +197,7 @@ Shader "WeirdQix/GameRender"
                 float2 valueCoord = coord + outOfBoundsDistortion * outOfBoundsAmount;
                 float2 gridCoord = float2(valueCoord.x * _GridSize, valueCoord.y * _GridSize);
                 float2 gridCell = floor(gridCoord);
-                float cellValue = tex2D(_GameStateMap, valueCoord).a;
+                float cellValue = tex2D(_GameStateMap, valueCoord).r;
                 float markDegradation = step(0.5, cellValue) * step(cellValue, 0.75) * (1.0-_MarkStrength) * aberration * (1.0 + noise(gridCoord+_Time.y));
                 cellValue = lerp(cellValue, 0.2, markDegradation);
                 col = tex2D(_CellColorRamp, float2(cellValue, cellValue));
