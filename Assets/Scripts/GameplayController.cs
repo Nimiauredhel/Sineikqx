@@ -183,16 +183,15 @@ public class GameplayController : MonoBehaviour
         bossGridPosition = bossInitialPosition;
         playerVisualPosition = (Vector2)playerInitialPosition;
         bossVisualPosition = (Vector2)bossInitialPosition;
+        visualPlayerHealth = playerHealth;
         renderController.UpdatePlayerPosition(playerVisualPosition);
         renderController.UpdateBossPosition(bossVisualPosition);
+        renderController.UpdatePlayerHealth(visualPlayerHealth);
         StartCoroutine(IntroRoutine());
     }
 
     private IEnumerator IntroRoutine()
     {
-        renderController.UpdatePlayerPosition(playerVisualPosition);
-        renderController.UpdateBossPosition(bossVisualPosition);
-        
         audioController.PlayIntro();
         yield return null;
         yield return StartCoroutine(renderController.UpdateGridIncremental(grid));

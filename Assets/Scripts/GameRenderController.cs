@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 using Vector2Int = UnityEngine.Vector2Int;
 
@@ -40,27 +41,42 @@ public class GameRenderController : MonoBehaviour
 
     public void UpdatePlayerPosition(Vector2 newPos)
     {
-        gameplayImage.material.SetVector("_PlayerPosition", new Vector4((newPos.x+0.5f)/Global.GRID_SIZE, (newPos.y+0.5f)/Global.GRID_SIZE, defVectorZ));
+        CommandBuffer buffer = new CommandBuffer();
+        buffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+        buffer.SetGlobalVector("_PlayerPosition", new Vector4((newPos.x + 0.5f) / Global.GRID_SIZE, (newPos.y + 0.5f) / Global.GRID_SIZE, defVectorZ, 0.0f));
+        Graphics.ExecuteCommandBufferAsync(buffer, ComputeQueueType.Default);
     }
     
     public void UpdateBossPosition(Vector2 newPos)
     {
-        gameplayImage.material.SetVector("_BossPosition", new Vector4((newPos.x+0.5f)/Global.GRID_SIZE, (newPos.y+0.5f)/Global.GRID_SIZE, defVectorZ));
+        CommandBuffer buffer = new CommandBuffer();
+        buffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+        buffer.SetGlobalVector("_BossPosition", new Vector4((newPos.x + 0.5f) / Global.GRID_SIZE, (newPos.y + 0.5f) / Global.GRID_SIZE, defVectorZ, 1.0f));
+        Graphics.ExecuteCommandBufferAsync(buffer, ComputeQueueType.Default);
     }
     
     public void UpdateFillPercent(float newFillPercent)
     {
-        gameplayImage.material.SetFloat("_FillPercent", newFillPercent);
+        CommandBuffer buffer = new CommandBuffer();
+        buffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+        buffer.SetGlobalFloat("_FillPercent", newFillPercent);
+        Graphics.ExecuteCommandBufferAsync(buffer, ComputeQueueType.Urgent);
     }
 
     public void UpdateMarkStrength(float newMarkStrength)
     {
-        gameplayImage.material.SetFloat("_MarkStrength", newMarkStrength);
+        CommandBuffer buffer = new CommandBuffer();
+        buffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+        buffer.SetGlobalFloat("_MarkStrength", newMarkStrength);
+        Graphics.ExecuteCommandBufferAsync(buffer, ComputeQueueType.Default);
     }
     
     public void UpdatePlayerHealth(float newPlayerHealth)
     {
-        gameplayImage.material.SetFloat("_PlayerHealth", newPlayerHealth);
+        CommandBuffer buffer = new CommandBuffer();
+        buffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+        buffer.SetGlobalFloat("_PlayerHealth", newPlayerHealth);
+        Graphics.ExecuteCommandBufferAsync(buffer, ComputeQueueType.Default);
     }
 
     public void UpdateGrid(CellState[][] newGrid)
@@ -69,6 +85,9 @@ public class GameRenderController : MonoBehaviour
         {
             InitializeTextures();
         }
+
+        CommandBuffer buffer = new CommandBuffer();
+        buffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
 
         int contiguousCount = 0;
         float lastValue = -1.0f;
@@ -85,7 +104,7 @@ public class GameRenderController : MonoBehaviour
                 {
                     if (y != 0)
                     {
-                        UpdateVerticalContiguous(lastChangedCoord.x, lastChangedCoord.y, contiguousCount, lastValue);
+                        UpdateVerticalContiguous(lastChangedCoord.x, lastChangedCoord.y, contiguousCount, lastValue, ref buffer);
                     }
 
                     lastValue = value;
@@ -98,6 +117,8 @@ public class GameRenderController : MonoBehaviour
                 }
             }
         }
+
+        Graphics.ExecuteCommandBufferAsync(buffer, ComputeQueueType.Default);
     }
 
     public IEnumerator UpdateGridIncremental(CellState[][] newGrid)
@@ -268,15 +289,20 @@ public class GameRenderController : MonoBehaviour
 
     private void SetWholeGrid(float value)
     {
+        CommandBuffer buffer = new CommandBuffer();
+        buffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+
         for (int x = 0; x < gameplayTexture.width; x++)
         {
-            UpdateVerticalContiguous(x, 0, Global.GRID_SIZE, value);
+            UpdateVerticalContiguous(x, 0, Global.GRID_SIZE, value, ref buffer);
         }
+
+        Graphics.ExecuteCommandBufferAsync(buffer, ComputeQueueType.Default);
     }
 
-    private void UpdateVerticalContiguous(int x, int y, int height, float value)
+    private void UpdateVerticalContiguous(int x, int y, int height, float value, ref CommandBuffer buffer)
     {
-        Graphics.CopyTexture(valueRamp, 0, 0, (int)((Global.GRID_SIZE - 1) * value), 0, 1, height,
+        buffer.CopyTexture(valueRamp, 0, 0, (int)((Global.GRID_SIZE - 1) * value), 0, 1, height,
                 gameplayTexture, 0, 0, x, y);
     }
 

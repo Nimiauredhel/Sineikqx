@@ -11,13 +11,6 @@ Shader "WeirdQix/GameRender"
         _GridSize ("Grid Size", int) = 64
         _SunDirection("Sun Direction", vector) = (1,1,1,1)
         _SunIntensity("Sun Intensity", float) = 1.0
-        
-        _MarkStrength("Mark Strength", Range(0.0, 1.0)) = 1.0
-        _FillPercent("Fill Percent", Range(0.0, 1.0)) = 0.5
-        _PlayerHealth("Player Health", Range(0.0, 1.0)) = 1.0
-        
-        _PlayerPosition ("Player Position", Vector) = (0.5, 0.5, 1, 1)
-        _BossPosition ("Boss Position", Vector) = (0.75, 0.75, 1, 1)
     }
     SubShader
     {
